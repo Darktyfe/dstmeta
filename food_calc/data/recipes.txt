@@ -1,0 +1,5 @@
+Meaty Stew: >= 3 *Meat; Twigs, Honey, Tallbird Egg, Mandrake
+Tall Scotch Eggs: = 1.0 Raw Tallbird Egg, >= 1 *Vegetable; *Barnacle
+Bacon and Eggs: >= 1.25 *Meat, >= 2.0 *Egg; *Vegetable
+Barnacle Linguine: = 2.0 *Barnacle, = 2.0 *Vegetable
+Beefy Greens: = 1.0 *Leafy Meat, >= 3.0 *Vegetable
