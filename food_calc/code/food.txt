@@ -1,3 +1,116 @@
 Asparagus: 12.5, 0, 3
 Cooked Asparagus: 25, 0, 3
 Batilisk Wing: 12.5, -10, 3
+Cooked Batilisk Wing: 18.75, 0, 8
+Berries: 9.375, 0, 0
+Roasted Berries: 12.5, 0, 1
+Roasted Birchnut: 9.375, 0, 1
+Butter: 25, 0, 40
+Butterfly Wings: 9.375, 0, 8
+Cactus Flesh: 12.5, -5, -3
+Cooked Cactus Flesh: 12.5, 15, 1
+Cactus Flower: 12.5, 5, 8
+Carrot: 12.5, 0, 1
+Roasted Carrot: 12.5, 0, 3
+Banana: 12.5, 0, 1
+Cooked Banana: 12.5, 0, 3
+Corn: 25, 0, 3
+Popcorn: 12.5, 0, 3
+Dragon Fruit: 9.375, 0, 3
+Prepared Dragon Fruit: 12.5, 0, 20
+Drumstick: 12.5, -10, 0
+Fried Drumstick: 12.5, 0, 1
+Durian: 25, -5, -3
+Extra Smelly Durian: 25, -5, 0
+Eel: 9.375, 0, 3
+Cooked Eel: 12.5, 0, 8
+Electric Milk: 12.5, 5, 3
+Egg: 9.375, 0, 0
+Cooked Egg: 12.5, 0, 0
+Eggplant: 25, 0, 8
+Braised: 25, 0, 20
+Fig: 12.5, 0, 0
+Cooked Fig: 18.75, 0, 1
+Fire Nettle Fronds: 0, -5, -3
+Fish: 12.5, 0, 1
+Cooked Fish: 12.5, 0, 1
+Fish Morsel: 12.5, 0, 1
+Cooked Fish Morsel: 12.5, 0, 1
+Forget-Me-Lots: 0, 1, 0
+Frog Legs: 12.5, -10, 0
+Cooked Frog Legs: 12.5, 0, 1
+Garlic: 9.375, -10, 0
+Roasted Garlic: 9.375, -5, 1
+Gears: 75, 50, 60
+Glommer's Goop: 9.375, -50, 40
+Glow Berry: 25, -10, 10
+Lesser Glow Berry: 12.5, -10, 3
+Guardian's Horn: 75, -15, 60
+Honey: 9.375, 0, 3
+Ice: 2.3, 0, 0.5
+Juicy Berries: 12.5, 0, 1
+Roasted Juicy Berries: 18.75, 0, 3
+Kelp Fronds: 9.375, -10, -1
+Cooked Kelp Fronds: 9.375, -5, 0
+Dried Kelp Fronds: 9.375, 10, 1
+Koalefant Trunk: 37.5, 0, 30
+Winter Koalefant Trunk: 37.5, 0, 40
+Koalefant Trunk Steak: 75, 0, 40
+Leafy Meat: 12.5, -10, 0
+Cooked Leafy Meat: 18.75, 0, 1
+Lichen: 12.5, -5, 3
+Light Bulb: 0, 0, 1
+Lune Tree Blossom: 0, 0, 1
+Mandrake: 75, 0, 60
+Cooked Mandrake: 150, 0, 100
+Meat: 25, -10, 1
+Cooked Meat: 25, 0, 3
+Jerky: 25, 15, 20
+Milky Whites: 12.5, -20, 8
+Monster Meat: 18.75, -15, -20
+Cooked Monster Meat: 18.75, -10, -3
+Monster Jerky: 18.75, -5, -3
+Moon Shroom: 12.5, 10, 0
+Cooked Moon Shroom: -12.5, -10, 0
+Moon Moth Wings: 9.375, 15, 8
+Morsel: 12.5, -10, 0
+Cooked Morsel: 12.5, -10, 0
+Small Jerky: 12.5, 10, 8
+Какашки Бывалого: 41, 41, 41
+Blue Cap: 12.5, -15, 20
+Cooked Blue Cap: 0, 10, -3
+Green Cap: 12.5, -50, 0
+Red Cap: 12.5, 0, -20
+Cooked Red Cap: 0, -10, 1
+Naked Nostrils: 12.5, -10, 3
+Charred Nostrils: 18.5, 0, 8
+Onion: 9.375, -10, 0
+Roasted Onion: 9.375, -5, 1
+Pepper: 9.375, -15, -20
+Roasted: 9.375, -10, -3
+Petals: 0, 0, 1
+Dark Petals: 0, -5, 0
+Phlegm: 12.5, -15, 0
+Pomegranate: 9.375, 0, 3
+Sliced Pomegranate: 12.5, 0, 20
+Potato: 12.5, -5, -3
+Roasted Potato: 25, 0, 20
+Pumpkin: 37.5, 0, 3
+Hot Pumpkin: 37.5, 0, 8
+Rot: -10, 0, -1
+Rotten Egg: -10, 0, -1
+Royal Jelly: 12.5, 15, 40
+Seeds: 4.6875, 0, 0
+Toasted Seeds: 4.6875, 0, 1
+Crop Seeds: 9.375, 0, 0.5
+Ripe Stone Fruit: 12.5, 0, 1
+Cooked Stone Fruit: 12.5, 0, 3
+Succulent: 0, 0, 1
+Tallbird Egg: 25, 0, 3
+Hatching Tallbird Egg: 25, 0, 3
+Fried Tallbird Egg: 37.5, 0, 0
+Tillweeds: 0, 0, 1
+Toma Root: 12.5, 0, 3
+Roasted Toma Root: 12.5, 0, 20
+Watermelon: 12.5, 5, 3
+Grilled Watermelon: 12.5, 7.5, 1
