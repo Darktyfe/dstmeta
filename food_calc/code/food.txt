@@ -114,3 +114,98 @@ Toma Root: 12.5, 0, 3
 Roasted Toma Root: 12.5, 0, 20
 Watermelon: 12.5, 5, 3
 Grilled Watermelon: 12.5, 7.5, 1
+Asparagazpacho: 25, 10, 3
+Asparagus Soup: 18.75, 5, 20
+Bacon and Eggs: 75, 5, 20
+Banana Pop: 12.5, 33, 20
+Banana Shake: 25, 33, 8
+Barnacle Linguine: 75, 20, 10
+Barnacle Nigiri: 37.5, 5, 40
+Barnacle Pita: 37.5, 5, 20
+Beefy Greens: 75, 5, 40
+Bone Bouillon: 150, 5, 32
+Breakfast Skillet: 37.5, 5, 20
+Bunny Stew: 37.5, 5, 20
+Butter Muffin: 37.5, 5, 20
+California Roll: 37.5, 5, 20
+Ceviche: 25, 5, 20
+Creamy Potato Purée: 37.5, 33, 20
+Dragonpie: 75, 5, 40
+Fancy Spiralled Tubers: 37.5, 15, 3
+Fig-Stuffed Trunk: 56.25, 0, 60
+Figatoni: 56.25, 15, 30
+Figgy Frogwich: 18.75, 10, 8
+Figkabab: 25, 15, 20
+Fish Cordon Bleu: 37.5, -10, 20
+Fish Tacos: 37.5, 5, 20
+Fishsticks: 37.5, 5, 40
+Fist Full of Jam: 37.5, 5, 3
+Flower Salad: 12.5, 5, 40
+Fresh Fruit Crepes: 150, 15, 60
+Froggle Bunwich: 37.5, 5, 20
+Frozen Banana Daiquiri: 18.75, 15, 30
+Fruit Medley: 25, 5, 20
+Glow Berry Mousse: 37.5, 10, 3
+Grim Galette: 25, 5, 1
+Guacamole: 37.5, 0, 20
+Honey Ham: 75, 5, 30
+Honey Nuggets: 37.5, 5, 20
+Hot Dragon Chili Salad: 25, 10, 3
+Ice Cream: 25, 50, 0	
+Jellybeans: 0, 5, 122
+Jelly Salad: 37.5, 50, 0
+Kabobs: 37.5, 5, 3
+Leafy Meatloaf: 37.5, 5, 8
+Mandrake Soup: 150, 5, 100	
+Meatballs: 62.5, 5, 3
+Meaty Stew: 150, 5, 12	
+Melonsicle: 12.5, 20, 3
+Monster Lasagna: 37.5, -20, -20
+Monster Tartare: 62.5, -20, -20
+Moqueca: 112.5, 33, 60
+Mushy Cake: 25, 10, 0
+Pierogi: 37.5, 5, 40	
+Plain Omelette: 50, 5, 3
+Powdercake: 0, 0, 3
+Puffed Potato Soufflé: 37.5, 15, 20
+Pumpkin Cookies: 37.5, 15, 0
+Ratatouille: 25, 5, 3	
+Salsa Fresca: 25, 33, 3
+Seafood Gumbo: 37.5, 20, 40
+Soothing Tea: 0, 45, 3
+Spicy Chili: 37.5, 0, 20
+Vegetable Stinger: 25, 33, 3
+Stuffed Eggplant: 37.5, 5, 3
+Stuffed Fish Heads: 75, 0, 20
+Stuffed Pepper Poppers: 25, -5, 30	
+Surf 'n' Turf: 37.5, 33, 60
+Taffy: 25, 15, -3	
+Tall Scotch Eggs: 150, 5, 60
+Trail Mix: 12.5, 5, 30
+Turkey Dinner: 75, 5, 20
+Unagi: 18.75, 5, 20
+Veggie Burger: 37.5, 33, 30
+Volt Goat Chaud-Froid: 37.5, 10, 3
+Waffles: 37.5, 5, 60
+Wet Goop: 0, 0, 0
+Wobster Bisque: 25, 10, 60
+Wobster Dinner: 25, 50, 60
+Wobster: 12.5, 0, 1
+Dead Wobster: 12.5, 0, 1
+Delicious Wobster: 12.5, 0, 1
+Runty Guppy: 12.5, 0, 1
+Needlenosed Squirt: 12.5, 0, 1
+Bitty Baitfish: 12.5, 0, 1
+Popperfish: 12.5, 0, 3
+Fallounder: 12.5, -10, 0
+Bloomfin Tuna: 12.5, -10, 0
+Scorching Sunfish: 12.5, 0, 1
+Mudfish: 25, 0, 8
+Deep Bass: 25, 0, 8
+Dandy Lionfish: 25, 0, 8
+Black Catfish: 25, 0, 8
+Corn Cod: 25, 0, 8
+Dappled Koi: 25, 0, 8
+Golden Koi: 25, 0, 8
+Ice Bream: 25, 0, 8
+Sweetish Fish: 25, 0, 8
