@@ -1,6 +1,1 @@
-*Meat:
-Barnacles - 0.25
-Cooked Barnacles - 0.25
-Morsel - 0.5
-Cooked Morsel - 0.5
-Drumstick - 0.5
+Barnacles: *Meat - 0.25, *Fish - 0.25

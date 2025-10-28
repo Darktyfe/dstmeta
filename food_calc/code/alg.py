@@ -10,20 +10,34 @@ VALUES = basic_func.file_to_list("values.txt")
 STATS = basic_func.file_to_list("food.txt")
 # {"Meaty Stew": {"Hunger": 150, ...}, ...}
 
+
 def get_version():
     return version
+
 
 def get_food_stat(name, type):
     return STATS[name][type]
 
+
 def can_comb(food_list):
     return {tuple(sorted(i)) for i in itertools.combinations(food_list, 4)}
 
-def check_value(food_name, value_name):
-    return food_name[value_name][VALUES]
+
+def check_value(food_name):
+    return food_name
+
 
 def canbe_cooked():
     return 0
 
+
 def can_receipt():
     return 0
+
+
+def crockpot(ingridients):
+    i1, i2, i3, i4 = list(map(check_value, ingridients))
+    for recipe in RECIPES:
+        name, condition, excludes, priority = recipe
+
+    return dish

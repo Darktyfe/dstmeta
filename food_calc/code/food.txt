@@ -160,6 +160,7 @@ Mandrake Soup: 150, 5, 100
 Meatballs: 62.5, 5, 3
 Meaty Stew: 150, 5, 12	
 Melonsicle: 12.5, 20, 3
+Milkmade Hat: 187.5, -5.3, 0
 Monster Lasagna: 37.5, -20, -20
 Monster Tartare: 62.5, -20, -20
 Moqueca: 112.5, 33, 60
