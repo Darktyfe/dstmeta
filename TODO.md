@@ -22,3 +22,7 @@ Grim Galette
 Ignore Milkmade Hat
 
 Ignore Over time Stats
+
+get_good_condition
+
+get_bad_condition
