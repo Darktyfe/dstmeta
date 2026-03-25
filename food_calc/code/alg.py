@@ -24,20 +24,25 @@ def can_comb(food_list):
 
 
 def check_value(food_name):
-    return food_name
+    return value # value = [("*Meat", 0.25), ("*Fish", 0.25)]
 
 
 def canbe_cooked():
     return 0
 
 
-def can_receipt():
-    return 0
-
-
 def crockpot(ingridients):
     i1, i2, i3, i4 = list(map(check_value, ingridients))
+    dishes = []
     for recipe in RECIPES:
-        name, condition, excludes, priority = recipe
-
+        name, conditions, excludes, priority = recipe
+        # check condition and excludes for i1 i2 i3 i4 -> dishes. then check priority -> dish (if more than one -> print each with chances)
+        for cond in conditions: # conditions = [(">=", "Meat", "3.0"), ...]
+            # i1 + i2 + i3 + i4
+            # check i1 + i2 + i3 + i4 satisfies condition
+            # check i1 + i2 + i3 + i4 satisfies exludes
+            # if both True
+            dishes.append(name, priority)
+    # sort dishes
+    # dish = dish with highest priority and chance (100%) (if more than one -> print each with chances)
     return dish

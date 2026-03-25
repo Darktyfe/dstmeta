@@ -34,7 +34,7 @@ def file_to_list(file_name):
                 vals[k] = float(number)
             return name, vals
         values = {}
-        for i in read_file("value.txt").split("\n"):
+        for line in read_file("value.txt").split("\n"):
             name, v = vv(line)
             values[name] = v
         return values
