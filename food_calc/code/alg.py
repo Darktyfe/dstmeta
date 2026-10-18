@@ -36,13 +36,37 @@ def crockpot(ingridients):
     dishes = []
     for recipe in RECIPES:
         name, conditions, excludes, priority = recipe
-        # check condition and excludes for i1 i2 i3 i4 -> dishes. then check priority -> dish (if more than one -> print each with chances)
-        for cond in conditions: # conditions = [(">=", "Meat", "3.0"), ...]
-            # i1 + i2 + i3 + i4
-            # check i1 + i2 + i3 + i4 satisfies condition
-            # check i1 + i2 + i3 + i4 satisfies exludes
-            # if both True
-            dishes.append(name, priority)
-    # sort dishes
-    # dish = dish with highest priority and chance (100%) (if more than one -> print each with chances)
-    return dish
+        # Check if conditions are met
+        condition_met = True
+        for cond in conditions:
+            condition_type, item, value = cond
+            if condition_type == '>=':
+                if item in i1 and i1[item] < float(value):
+                    condition_met = False
+                if item in i2 and i2[item] < float(value):
+                    condition_met = False
+                if item in i3 and i3[item] < float(value):
+                    condition_met = False
+                if item in i4 and i4[item] < float(value):
+                    condition_met = False
+            # Add more condition types if needed
+        # Check if excludes are met
+        if any(exclude in i1 for exclude in excludes):
+            condition_met = False
+        if any(exclude in i2 for exclude in excludes):
+            condition_met = False
+        if any(exclude in i3 for exclude in excludes):
+            condition_met = False
+        if any(exclude in i4 for exclude in excludes):
+            condition_met = False
+        # If conditions are met, add dish to list
+        if condition_met:
+            dishes.append((name, priority))
+    # Sort dishes by priority (descending)
+    dishes.sort(key=lambda x: x[1], reverse=True)
+    # Return dish with the highest priority
+    if dishes:
+        return dishes[0][0]
+    else:
+        return None
+
