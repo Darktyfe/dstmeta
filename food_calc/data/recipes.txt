@@ -13,11 +13,11 @@ Breakfast Skillet; >= 1.0 *Egg, >= 1.0 *Vegetable; *Meat, *Diary; 1
 Bunny Stew; > 0 *Meat, >= 2.0 *Ice, <= 0.75 *Meat; *Inedible; 1 
 Butter Muffin; >= 1.0 Butterfly Wings, >= 0.5 *Vegetable; *Meat; 1
 Butter Muffin; >= 1.0 Moon Moth Wings, >= 0.5 *Vegetable; *Meat; 1
-California Roll; >= 2.0 *Kelp Fronds; >= 1.0 *Fish; ; 20
-Ceviche; >= 1.0 Ice; >= 2.0 *Fish; *Egg, *Inedible; 20
+California Roll; >= 2.0 *Kelp Fronds, >= 1.0 *Fish; ; 20
+Ceviche; >= 1.0 Ice, >= 2.0 *Fish; *Egg, *Inedible; 20
 Creamy Potato Purée; >= 2.0 *Potato, >= 1.0 *Garlic; *Meat, *Inedible; 20 
 Dragonpie; >= 1.0 *Dragon Fruit; *Meat; 1
-Fancy Spiralled Tubers; >= 1.0 *Potato; >= 1.0 Twigs, <= 2.0 *Inedible, <= 1.0 *Monster Food; *Meat; 10
+Fancy Spiralled Tubers; >= 1.0 *Potato; >= 1.0 Twigs, <= 2.0 *Inedible, <= 1.0 *Monster Food, *Meat; 10
 Figatoni; >= 1.0 *Fig, >= 2.0 *Vegetable; *Meat; 30
 Figgy Frogwich; >= 1.0 *Fig, >= 1.0 *Frog Leg; ; 1
 Figkabab; >= 1.0 *Fig, >= 1.0 *Meat, >= 1.0 Twigs; ; 30
@@ -36,43 +36,43 @@ Honey Nuggets; >= 1.0 Honey, > 0 *Meat, <= 1.5 *Meat; *Inedible; 2
 Ice Cream; >= 1.0 *Ice, >= 1.0 *Diary, >= 1.0 *Sweetener; *Meat, *Egg, *Vegetable, *Inedible; 10
 Jellybeans; >= 1.0 Royal Jelly; *Inedible, *Meat; 12
 Jelly Salad; >= 2.0 *Leafy Meat; >= 2.0 *Sweetener; 50
-Kabobs; > 0 *Meat; >= 1.0 Twigs, <= 1.0 *Inedible, <= 1.0 *Monster; ; 5
+Kabobs; > 0 *Meat, >= 1.0 Twigs, <= 1.0 *Inedible, <= 1.0 *Monster; ; 5
 Mandrake Soup; >= 1.0 Mandrake; ; 10
 Meatballs; > 0 *Meat; *Inedible; -1
 Meaty Stew; >= 3.0 *Meat; *Inedible; 0
 Melonsicle; >= 1.0 Watermelon, >= 1.0 *Ice, >= 1.0 Twigs; *Meat, *Egg, *Vegetable; 10
 Milkmade Hat; >= 1.0 Naked Nostrils, >= 1.0 Kelp Fronds, >= 1.0 *Diary; ; 55
 Monster Lasagna; >= 2.0 *Monster; *Inedible; 10
-Mushy Cake; >= 1.0 Moon Shroom; >= 1.0 Red Cap; >= 1.0 Blue Cap; >= 1.0 Green Cap; ; 30
+Mushy Cake; >= 1.0 Moon Shroom, >= 1.0 Red Cap, >= 1.0 Blue Cap, >= 1.0 Green Cap; ; 30
 Leafy Meatloaf; >= 2.0 *Leafy Meat; ; 25
-Pierogi; >= 1.0 *Egg; > 0 *Meat; > 0 *Vegetable; *Inedible; 5
+Pierogi; >= 1.0 *Egg, > 0 *Meat, > 0 *Vegetable; *Inedible; 5
 Plain Omelette; >= 3.0 *Egg; ; 0
 Powdercake; >= 1.0 *Corn, >= 1.0 Honey, >= 1.0 Twigs; ; 10
 Powdercake; >= 1.0 Corn Cod, >= 1.0 Honey, >= 1.0 Twigs; ; 10
 Powdercake; >= 1.0 Popperfish, >= 1.0 Honey, >= 1.0 Twigs; ; 10
 Pumpkin Cookie; >= 1.0 *Pumpkin, >= 2.0 *Sweetener; ; 10
 Ratatouille; >= 0.5 *Vegetable; *Meat, *Inedible; 0
-Salsa Fresca; >= 1.0 *Toma Root; >= 1.0 *Onion; *Meat, *Egg, *Inedible; 20
+Salsa Fresca; >= 1.0 *Toma Root, >= 1.0 *Onion; *Meat, *Egg, *Inedible; 20
 Seafood Gumbo; >= 2.0 *Fish; ; 10
-Soothing Tea; >= 1.0 Forget-Me-Lots; >= 1.0 *Sweetener; >= 1.0 *Ice; *Meat, *Monster, *Fish, *Vegetable, *Inedible, *Diary, *Egg; 1
+Soothing Tea; >= 1.0 Forget-Me-Lots, >= 1.0 *Sweetener, >= 1.0 *Ice; *Meat, *Monster, *Fish, *Vegetable, *Inedible, *Diary, *Egg; 1
 Spicy Chili; >= 1.5 Vegetable, >= 1.5 Meat; ; 10
 Steamed Twigs; >= 1.0 *Inedible; *Meat, *Monster, *Fish, *Egg, *Diary, Nightmare Fuel; -5
-Stuffed Eggplant; >= 1.0 *Eggplant; >= 1.5 *Vegetable; ; 1
-Stuffed Fish Heads; >= 1.0 *Barnacle; >= 1.0 *Fish; ; 26
-Stuffed Night Cap; >= 2.0 Moon Shroom; >= 1.0 Monster Meat; ; 30
-Stuffed Pepper Poppers; >= 1.0 *Pepper; >= 1.5 *Meat; *Inedible; 20 
-Surf 'n' Turf; >= 2.5 *Meat; >= 1.5 *Fish; *Ice; 30  
+Stuffed Eggplant; >= 1.0 *Eggplant, >= 1.5 *Vegetable; ; 1
+Stuffed Fish Heads; >= 1.0 *Barnacle, >= 1.0 *Fish; ; 26
+Stuffed Night Cap; >= 2.0 Moon Shroom, >= 1.0 Monster Meat; ; 30
+Stuffed Pepper Poppers; >= 1.0 *Pepper, >= 1.5 *Meat; *Inedible; 20 
+Surf 'n' Turf; >= 2.5 *Meat, >= 1.5 *Fish; *Ice; 30  
 Taffy; >= 3.0 *Sweetener; *Meat; 10
-Tall Scotch Eggs; >= 1.0 Tall Scotch Egg; >= 1.0 Vegetable; ; 10
-Trail Mix; >= 1.0 *Birchnut; >= 1.0 *Berry; >= 1.0 *Fruit; *Meat, *Egg, *Vegetable, *Diary; 10
+Tall Scotch Eggs; >= 1.0 Tall Scotch Egg, >= 1.0 Vegetable; ; 10
+Trail Mix; >= 1.0 *Birchnut, >= 1.0 *Berry, >= 1.0 *Fruit; *Meat, *Egg, *Vegetable, *Diary; 10
 Turkey Dinner; >= 2.0 Drumstick, > 1.0 *Meat, >= 0.5 *Fruit; ; 10
 Turkey Dinner; >= 2.0 Drumstick, > 1.0 *Meat, >= 0.5 *Vegetable; ; 10
-Unagi; >= 1.0 *Eel; >= 1.0 Lichen; ; 20
-Unagi; >= 1.0 *Eel; >= 1.0 *Kelp Fronds; ; 20
-Veggie Burger; >= 1.0 *Leafy Meat; >= 1.0 *Onion; >= 2.0 *Vegetable; ; 25
-Vegetable Stinger; >= 1.0 *Asparagus; >= 1.0 Ice, >= 2.5 *Vegetable; *Meat, *Inedible, *Egg; 15
-Vegetable Stinger; >= 1.0 *Toma Root; >= 1.0 Ice, >= 2.5 *Vegetable; *Meat, *Inedible, *Egg; 15
-Waffles; >= 1.0 Butter; >= 1.0 *Berries; >= 1.0 *Egg; ; 10
+Unagi; >= 1.0 *Eel, >= 1.0 Lichen; ; 20
+Unagi; >= 1.0 *Eel, >= 1.0 *Kelp Fronds; ; 20
+Veggie Burger; >= 1.0 *Leafy Meat, >= 1.0 *Onion, >= 2.0 *Vegetable; ; 25
+Vegetable Stinger; >= 1.0 *Asparagus, >= 1.0 Ice, >= 2.5 *Vegetable; *Meat, *Inedible, *Egg; 15
+Vegetable Stinger; >= 1.0 *Toma Root, >= 1.0 Ice, >= 2.5 *Vegetable; *Meat, *Inedible, *Egg; 15
+Waffles; >= 1.0 Butter, >= 1.0 *Berries, >= 1.0 *Egg; ; 10
 Wet Goop; ; ; -10
-Lobster Bisque; >= 1.0 Wobster; >= 1.0 *Ice; ; 30
-Lobster Dinner >= 1.0 Wobster; >= 1.0 Butter; *Ice; 25
+Lobster Bisque; >= 1.0 Wobster, >= 1.0 *Ice; ; 30
+Lobster Dinner; >= 1.0 Wobster, >= 1.0 Butter; *Ice; 25
