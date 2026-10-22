@@ -1,0 +1,42 @@
+Asparagus: Cooked Asparagus
+Banana: Cooked Banana
+Batilisk Wing: Cooked Batilisk Wing
+Berries: Roasted Berries
+Blue Cap: Cooked Blue Cap
+Cactus Flesh: Cooked Cactus Flesh
+Carrot: Roasted Carrot
+Corn: Popcorn
+Dead Wobster: Delicious Wobster
+Dragon Fruit: Prepared Dragon Fruit
+Drumstick: Fried Drumstick
+Durian: Extra Smelly Durian
+Eel: Cooked Eel
+Egg: Cooked Egg
+Eggplant: Braised Eggplant
+Fig: Cooked Fig
+Fish: Cooked Fish
+Fish Morsel: Cooked Fish Morsel
+Frog Legs: Cooked Frog Legs
+Garlic: Roasted Garlic
+Green Cap: Cooked Green Cap
+Juicy Berries: Roasted Juicy Berries
+Kelp Fronds: Cooked Kelp Fronds
+Leafy Meat: Cooked Leafy Meat
+Mandrake: Cooked Mandrake
+Meat: Cooked Meat
+Monster Meat: Cooked Monster Meat
+Moon Shroom: Cooked Moon Shroom
+Morsel: Cooked Morsel
+Naked Nostrils: Charred Nostrils
+Onion: Roasted Onion
+Pepper: Roasted Pepper
+Pomegranate: Sliced Pomegranate
+Potato: Roasted Potato
+Pumpkin: Hot Pumpkin
+Red Cap: Cooked Red Cap
+Ripe Stone Fruit: Cooked Stone Fruit
+Seeds: Toasted Seeds
+Tallbird Egg: Fried Tallbird Egg
+Toma Root: Roasted Toma Root
+Watermelon: Grilled Watermelon
+Wobster: Delicious Wobster

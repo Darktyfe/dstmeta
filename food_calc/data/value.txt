@@ -1,0 +1,146 @@
+Asparagus: *Vegetable - 1
+Banana: *Fruit - 1
+Barnacles: *Meat - 0.25, *Fish - 0.25
+Batilisk Wing: *Meat - 0.5
+Berries: *Fruit - 0.5
+Birchnut: *Seed - 1
+Bitty Baitfish: *Meat - 0.5, *Fish - 0.5
+Black Catfish: *Meat - 1, *Fish - 1
+Bloomfin Tuna: *Meat - 0.5, *Fish - 0.5
+Blue Cap: *Vegetable - 0.5
+Braised Eggplant: *Vegetable - 1
+Bone Shards: *Inedible - 1
+Butter: *Dairy - 1, *Fat - 1
+Butterfly Wings: *Decoration - 2
+Cactus Flesh: *Vegetable - 1
+Cactus Flower: *Vegetable - 0.5
+Carrot: *Vegetable - 1
+Cave Banana: *Fruit - 1
+Charred Nostrils: *Meat - 0.5
+Collected Dust: *Decoration - 2
+Cooked Asparagus: *Vegetable - 1
+Cooked Banana: *Fruit - 1
+Cooked Barnacles: *Meat - 0.25, *Fish - 0.25
+Cooked Batilisk Wing: *Meat - 0.5
+Cooked Blue Cap: *Vegetable - 0.5
+Cooked Cactus Flesh: *Vegetable - 1
+Cooked Cave Banana: *Fruit - 1
+Cooked Eel: *Meat - 0.5, *Fish - 1
+Cooked Egg: *Egg - 1
+Cooked Fig: *Fruit - 0.5
+Cooked Fish: *Meat - 0.5
+Cooked Fish Morsel: *Fish - 0.5
+Cooked Frog Legs: *Meat - 0.5
+Cooked Green Cap: *Vegetable - 0.5
+Cooked Heat Gland: *Meat - 0.5, *Monster Meat - 0.5
+Cooked Kelp Fronds: *Vegetable - 0.5
+Cooked Leafy Meat: *Meat - 1
+Cooked Meat: *Meat - 1
+Cooked Moon Shroom: *Vegetable - 0.5
+Cooked Monster Meat: *Meat - 1, *Monster Meat - 1
+Cooked Morsel: *Meat - 0.5
+Cooked Nightberry: *Fruit - 1
+Cooked Red Cap: *Vegetable - 0.5
+Cooked Stone Fruit: *Vegetable - 1
+Corn: *Vegetable - 1
+Corn Cod: *Vegetable - 1
+Dandy Lionfish: *Meat - 1, *Fish - 1
+Dappled Koi: *Meat - 1, *Fish - 1
+Deep Bass: *Meat - 1, *Fish - 1
+Dragon Fruit: *Fruit - 1
+Dried Dark Petals: *Decoration - 1, *Magic - 0.5
+Dried Fire Nettle Frond: *Decoration - 1
+Dried Foliage: *Decoration - 1
+Dried Forget-Me-Lots: *Decoration - 1
+Dried Kelp Fronds: *Vegetable - 0.5
+Dried Lune Tree Blossom: *Decoration - 1
+Dried Petals: *Decoration - 1
+Dried Succulent: *Decoration - 1
+Dried Tillweed: *Decoration - 1
+Drumstick: *Meat - 0.5
+Durian: *Monster Meat - 1, *Fruit - 1
+Eel: *Meat - 0.5, *Fish - 1
+Egg: *Egg - 1
+Eggplant: *Vegetable - 1
+Electric Milk: *Dairy - 1
+Extra Smelly Durian: *Monster Meat - 1, *Fruit - 1
+Fallounder: *Meat - 0.5, *Fish - 0.5
+Fig: *Fruit - 0.5
+Fish: *Meat - 1, *Fish - 1
+Fish Morsel: *Meat - 0.5, *Fish - 0.5
+Fish Steak: *Meat - 1, *Fish - 1
+Fishy Jerky: *Meat - 1, *Fish - 1
+Forget-Me-Lots: *Decoration - 1
+Freshwater Fish: *Meat - 0.5, *Fish - 0.5
+Fried Drumstick: *Meat - 0.5
+Fried Tallbird Egg: *Egg - 4
+Frog Legs: *Meat - 0.5
+Garlic: *Vegetable - 1
+Glow Berry: *Fruit - 1
+Golden Koi: *Meat - 1, *Fish - 1
+Green Cap: *Vegetable - 0.5
+Grilled Watermelon: *Fruit - 1
+Heat Gland: *Meat - 0.5, *Monster Meat - 0.5
+Honey: *Sweetener - 1
+Honeycomb: *Sweetener - 1
+Hot Pumpkin: *Vegetable - 1
+Ice: *Frozen - 1
+Ice Bream: *Meat - 1, *Fish - 1, *Frozen - 1
+Jerky: *Meat - 1
+Juicy Berries: *Fruit - 0.5
+Kelp Fronds: *Vegetable - 0.5
+Koalefant Trunk: *Meat - 1
+Koalefant Trunk Steak: *Meat - 1
+Leafy Meat: *Meat - 1
+Lesser Glow Berry: *Fruit - 0.5
+Lichen: *Vegetable - 1
+Mandrake: *Vegetable - 1, *Magic - 1
+Meat: *Meat - 1
+Milky Whites: *Dairy - 1
+Moleworm: *Meat - 0.5
+Monster Jerky: *Meat - 1, *Monster Meat - 1
+Monster Meat: *Meat - 1, *Monster Meat - 1
+Moon Moth Wings: *Decoration - 2
+Moon Shroom: *Vegetable - 0.5
+Morsel: *Meat - 0.5
+Mudfish: *Meat - 1, *Fish - 1
+Naked Nostrils: *Meat - 0.5
+Needlenosed Squirt: *Meat - 0.5, *Fish - 0.5
+Nightberry: *Fruit - 1
+Nightmare Fuel: *Inedible - 1, *Magic - 1
+Onion: *Vegetable - 1
+Pepper: *Vegetable - 1
+Pomegranate: *Fruit - 1
+Popcorn: *Vegetable - 1
+Popperfish: *Vegetable - 1
+Potato: *Vegetable - 1
+Prepared Dragon Fruit: *Fruit - 1
+Pumpkin: *Vegetable - 1
+Raw Fish: *Meat - 1, *Fish - 1
+Red Cap: *Vegetable - 0.5
+Ripe Stone Fruit: *Vegetable - 1
+Roasted Garlic: *Vegetable - 1
+Roasted Onion: *Vegetable - 1
+Roasted Potato: *Vegetable - 1
+Roasted Toma Root: *Vegetable - 1
+Roasted Berries: *Fruit - 0.5
+Roasted Birchnut: *Seed - 1
+Roasted Carrot: *Vegetable - 1
+Roasted Juicy Berries: *Fruit - 0.5
+Roasted Pepper: *Vegetable - 1
+Royal Jelly: *Sweetener - 3
+Runty Guppy: *Meat - 0.5, *Fish - 0.5
+Scorching Sunfish: *Meat - 0.5, *Fish - 0.5
+Sliced Pomegranate: *Fruit - 1
+Small Fishy Jerky: *Meat - 0.5, *Fish - 0.5
+Small Jerky: *Meat - 0.5
+Smolt Fry: *Meat - 0.5, *Fish - 0.5
+Spittlefish: *Meat - 0.5, *Fish - 0.5
+Sweetish Fish: *Meat - 1, *Fish - 1
+Tallbird Egg: *Egg - 4
+Toma Root: *Vegetable - 1
+Twigs: *Inedible - 1
+Volt Goat Horn: *Inedible - 1
+Watermelon: *Fruit - 1
+Winter Koalefant Trunk: *Meat - 1
+Wobster: *Meat - 1, *Fish - 1

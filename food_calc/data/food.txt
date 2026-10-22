@@ -28,7 +28,7 @@ Electric Milk: 12.5, 5, 3
 Egg: 9.375, 0, 0
 Cooked Egg: 12.5, 0, 0
 Eggplant: 25, 0, 8
-Braised: 25, 0, 20
+Braised Eggplant: 25, 0, 20
 Fig: 12.5, 0, 0
 Cooked Fig: 18.75, 0, 1
 Fire Nettle Fronds: 0, -5, -3
@@ -76,7 +76,6 @@ Moon Moth Wings: 9.375, 15, 8
 Morsel: 12.5, -10, 0
 Cooked Morsel: 12.5, -10, 0
 Small Jerky: 12.5, 10, 8
-Какашки Бывалого: 41, 41, 41
 Blue Cap: 12.5, -15, 20
 Cooked Blue Cap: 0, 10, -3
 Green Cap: 12.5, -50, 0
@@ -87,7 +86,7 @@ Charred Nostrils: 18.5, 0, 8
 Onion: 9.375, -10, 0
 Roasted Onion: 9.375, -5, 1
 Pepper: 9.375, -15, -20
-Roasted: 9.375, -10, -3
+Roasted Pepper: 9.375, -10, -3
 Petals: 0, 0, 1
 Dark Petals: 0, -5, 0
 Phlegm: 12.5, -15, 0
@@ -150,7 +149,7 @@ Grim Galette: 25, 5, 1
 Guacamole: 37.5, 0, 20
 Honey Ham: 75, 5, 30
 Honey Nuggets: 37.5, 5, 20
-Hot Dragon Chili Salad: 25, 10, 3
+Hot Dragon Chili Salad: 25, 10, -3
 Ice Cream: 25, 50, 0	
 Jellybeans: 0, 5, 122
 Jelly Salad: 37.5, 50, 0
@@ -210,3 +209,8 @@ Dappled Koi: 25, 0, 8
 Golden Koi: 25, 0, 8
 Ice Bream: 25, 0, 8
 Sweetish Fish: 25, 0, 8
+Amberosia: 0, 0, 0
+Beefalo Treats: 0, 0, 0
+Steamed Twigs: 0, 0, 0
+Stuffed Night Cap: 18.75, -20, -15
+Cooked Green Cap: 0, 15, -1

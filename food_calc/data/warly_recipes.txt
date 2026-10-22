@@ -1,0 +1,12 @@
+Asparagazpacho; >= 2.0 *Asparagus, >= 2.0 *Ice; ; 30
+Bone Bouillon; >= 1.0 *Onion, >= 2.0 Bone Shards; Twigs; 30
+Fish Cordon Bleu; >= 1.0 *Fish, >= 2.0 *Frog Leg; Twigs; 30
+Fresh Fruit Crepes; >= 1.5 *Fruit, >= 1.0 Butter, >= 1.0 Honey; ; 30
+Glow Berry Mousse; >= 1.0 Glow Berry, >= 1.0 *Fruit; *Meat, *Inedible; 30
+Glow Berry Mousse; >= 2.0 Lesser Glow Berry, >= 1.0 *Fruit; *Meat, *Inedible; 30
+Grim Galette; >= 1.0 *Potato, >= 1.0 *Onion, >= 2.0 Nightmare Fuel; ; 30
+Hot Dragon Chili Salad; >= 1.0 *Dragon Fruit, >= 1.0 *Pepper; *Meat, *Inedible, *Egg; 30
+Monster Tartare; >= 2.0 *Monster; Twigs; 30
+Moqueca; >= 1.0 *Onion, >= 1.0 *Toma Root, >= 0.25 *Fish; Twigs; 30
+Puffed Potato Soufflé; >= 1.0 *Egg, >= 2.0 *Potato; *Meat, *Inedible; 30
+Volt Goat Chaud-Froid; >= 1.0 Volt Goat Horn, >= 2.0 *Sweetener; *Meat; 30
