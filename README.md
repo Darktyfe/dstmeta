@@ -17,10 +17,9 @@ py site\server.py
 Then open <http://127.0.0.1:8000>. Use `--port 8080` to change the port and
 `--open` to launch the browser automatically. The page has the same options as
 the CLI: choose `Hunger`, `Sanity` or `Health`, enable Warly's exclusive
-recipes, and set permissible losses. Results are calculated by the Python
-engine, so the page and the CLI always agree. To keep the exhaustive search
-responsive, the web planner accepts up to 18 ingredients per calculation; the
-CLI has no such limit.
+recipes, and set permissible losses. To keep the exhaustive search responsive,
+the web planner accepts up to 20 ingredients per calculation; the CLI has no
+such limit.
 
 ## Usage
 
@@ -69,6 +68,47 @@ produce the same dish, the least-processed variant is preferred, so the planner
 does not roast an ingredient before putting it in the pot unless doing so is
 actually useful.
 
+## The plan engine: C++ with Python fallback
+
+The exhaustive plan search is ported to C++ in
+`food_calc/native/engine.cpp` and ships compiled as
+`food_calc/native/engine.dll` (Windows). The Python code in `alg.py` builds
+one flat "task" per calculation (every useful pot combination with its dish
+stats, plus the campfire options) and hands it to the library through
+`food_calc/code/cpp_engine.py`; all recipe and tag logic stays in Python, so
+the C++ side is only the heavy search. Both engines implement the same
+algorithm with the same tie-breaking, and a dedicated test class compares
+their plans on a mix of inventories.
+
+If the library is missing or a task exceeds the native engine's limits (48
+ingredient kinds, 255 copies of one kind, 1024 items overall), the program
+falls back to the pure Python engine — same results, just slower.
+
+Rough wall-clock times for the worst case (20 distinct ingredients), from an
+earlier Python-only build to the current native engine:
+
+|   | 18 items | 20 items | 22 distinct |
+|---|---------|----------|-------------|
+| Python engine (old) | ~2.9 s | ~17 s | minutes |
+| Native engine | ~1.8 s | ~2.8 s | ~17 s |
+
+The site caps inputs at 20 so a request always finishes in about a second or
+two. 22 distinct items remain OK for the CLI when you can wait.
+
+Rebuilding the library needs any C++17 compiler:
+
+```bat
+py tools\fetch_compiler.py
+py tools\build_engine.py
+```
+
+`fetch_compiler.py` downloads a portable MinGW-w64 (GCC 16.2) into
+`tools/mingw64/` — only needed when no compiler is installed; it is ignored by
+git. On Unix-like systems any `g++` works; the loader picks up
+`libengine.so`/`libengine.dylib` from the same folder. Delete
+`food_calc/native/engine.*` to force the Python engine (or set
+`alg._USE_NATIVE = False` in code/tests).
+
 ## Tests
 
 ```bat
@@ -83,8 +123,12 @@ food_calc/
   code/
     basic_func.py   parsing of the data files
     alg.py          tag matching, recipe selection, search
+    cpp_engine.py   ctypes loader for the native engine
     main.py         command line interface
     test_alg.py     unit tests for the engine
+  native/
+    engine.cpp      C++ port of the plan search
+    engine.dll      compiled library (Windows); libengine.so / libengine.dylib
   data/
     food.txt        food and dish stats
     value.txt       ingredient tags and weights
@@ -97,6 +141,9 @@ site/
   app.js            form handling and result rendering
   server.py         local web server and JSON API
   test_site.py      tests for the website API
+tools/
+  build_engine.py   compile food_calc/native/engine.cpp
+  fetch_compiler.py download a portable MinGW-w64 g++ (Windows)
 ```
 
 ## Data format

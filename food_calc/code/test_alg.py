@@ -195,5 +195,69 @@ class LookupTest(unittest.TestCase):
         self.assertEqual(priority, 50)
 
 
+class NativeParityTest(unittest.TestCase):
+    """The compiled engine must produce the same plans as the Python engine."""
+
+    CASES = [
+        ["Meat", "Meat", "Meat", "Ice"],
+        ["Meat"] * 8,
+        ["Monster Meat", "Monster Meat", "Ice", "Ice"],
+        ["Carrot", "Carrot", "Corn", "Corn", "Meat", "Twigs"],
+        ["Fish Morsel"] * 6 + ["Twigs"] * 4,
+        ["Berries", "Berries", "Berries", "Butter", "Honey", "Ice",
+         "Meat", "Meat", "Monster Meat", "Twigs", "Twigs", "Twigs"],
+    ]
+
+    def _run_plan(self, ingredients, **kwargs):
+        import cpp_engine
+
+        if not cpp_engine.available():
+            self.skipTest("native engine not available")
+
+        alg._USE_NATIVE = False
+        try:
+            python_plan = alg.find_best_plan(ingredients, **kwargs)
+        finally:
+            alg._USE_NATIVE = True
+        native_plan = alg.find_best_plan(ingredients, **kwargs)
+        return python_plan, native_plan
+
+    @staticmethod
+    def _cook_groups(actions):
+        return sorted((action[2], sorted(action[1]))
+                      for action in actions if action[0] == "cook")
+
+    def test_hunger_plans_match(self):
+        for ingredients in self.CASES:
+            with self.subTest(inventory=ingredients):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(ingredients)
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
+                self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+
+    def test_warly_and_losses_match(self):
+        ingredients = ["Monster Meat", "Monster Meat", "Ice", "Ice"]
+        for losses in (None, {"Hunger": 0, "Sanity": 20, "Health": 20}):
+            with self.subTest(losses=losses):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(
+                    ingredients, warly=True, losses=losses
+                )
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
+                self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+
+    def test_other_stats_match(self):
+        for ingredients, stat in (
+            (["Carrot"] * 4, "Health"),
+            (["Corn"] * 4, "Hunger"),
+            (["Meat"] * 4 + ["Ice"] * 4, "Sanity"),
+        ):
+            with self.subTest(inventory=ingredients, stat=stat):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(ingredients, stat=stat)
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
+                self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

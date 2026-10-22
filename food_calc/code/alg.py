@@ -24,6 +24,7 @@ import re
 from functools import lru_cache
 
 import basic_func
+import cpp_engine
 
 version = "0.5-alpha"
 
@@ -574,6 +575,127 @@ def _solve_frontier(inventory, warly):
     return solve(inventory)
 
 
+# The plan search runs in the native engine (food_calc/native/engine.dll) when
+# that library is available; set to False to force the pure Python path.
+_USE_NATIVE = True
+
+# Task limits of the native engine (food_calc/native/engine.cpp).
+_NATIVE_MAX_TYPES = 48
+_NATIVE_MAX_PER_TYPE = 255
+_NATIVE_MAX_INSTANCES = 1024
+
+
+def _type_combos(counts, size, start=0, chosen=()):
+    """Yield ``size`` type indices (ascending, repeats allowed) with counts."""
+    if size == 0:
+        yield chosen
+        return
+    for t in range(start, len(counts)):
+        if counts[t]:
+            counts[t] -= 1
+            yield from _type_combos(counts, size - 1, t, chosen + (t,))
+            counts[t] += 1
+
+
+def _native_task(inventory, warly):
+    """Build the flat arrays for the native engine, or None outside its limits.
+
+    Returns ``(task, types, dish_names, used_by)``: ``task`` packs stats and
+    ids to hand to :mod:`cpp_engine`, and the rest converts native output back
+    into action tuples.
+    """
+    types = sorted(set(inventory))
+    if not types or len(types) > _NATIVE_MAX_TYPES:
+        return None
+    counts = [inventory.count(name) for name in types]
+    if any(count > _NATIVE_MAX_PER_TYPE for count in counts):
+        return None
+    if len(inventory) > _NATIVE_MAX_INSTANCES:
+        return None
+
+    # Individual options per type, in keep/eat/roast order.
+    ind_off = [0]
+    ind_kind = []
+    ind_stats = []
+    for name in types:
+        for vector, action in _individual_options(name):
+            ind_kind.append(cpp_engine.ACTION_KINDS[action[0]])
+            ind_stats.extend(float(value) for value in vector)
+        ind_off.append(len(ind_kind))
+
+    # Pot options for every distinct 4-item multiset of types.
+    dish_names = []
+    dish_ids = {}
+    types_with_counts = list(counts)
+    pot_keys = []
+    pot_dish = []
+    pot_stats = []
+    pot_cooked = []
+    pot_off = [0]
+    used_by = {}
+
+    def dish_id(dish):
+        index = dish_ids.get(dish)
+        if index is None:
+            index = len(dish_names)
+            dish_ids[dish] = index
+            dish_names.append(dish)
+        return index
+
+    for combo in _type_combos(types_with_counts, 4):
+        names = tuple(types[t] for t in combo)
+        options = _pot_options(names, warly)
+        pot_keys.extend(combo)
+        for dish, used, stats in options:
+            pot_dish.append(dish_id(dish))
+            pot_stats.extend(float(value) for value in stats)
+            pot_cooked.append(_cooked_count(used))
+            used_by[(combo, pot_dish[-1])] = used
+        pot_off.append(len(pot_dish))
+
+    task = (counts, ind_off, ind_stats, ind_kind, pot_keys, pot_off,
+            pot_dish, pot_stats, pot_cooked)
+    return task, types, dish_names, used_by
+
+
+def _native_plan(inventory, stat_index, allowed, warly):
+    """Return ``(total, actions)`` from the native engine, or None."""
+    import cpp_engine
+
+    if not cpp_engine.available():
+        return None
+
+    built = _native_task(inventory, warly)
+    if built is None:
+        return None
+    task, types, dish_names, used_by = built
+    counts, ind_off, ind_stats, ind_kind, pot_keys, pot_off, pot_dish, pot_stats, pot_cooked = task
+
+    losses = [allowed[name] for name in STAT_NAMES]
+    result = cpp_engine.solve(
+        counts, ind_off, ind_stats, ind_kind, pot_keys, pot_off, pot_dish,
+        pot_stats, pot_cooked, stat_index, losses,
+    )
+    if result is None:
+        return None
+    total, _totals, groups, individuals = result
+
+    actions = []
+    for dish_id, t0, t1, t2, t3 in groups:
+        combo = (t0, t1, t2, t3)
+        used = used_by[(combo, dish_id)]
+        actions.append(("cook", tuple(used), dish_names[dish_id]))
+    for t, name in enumerate(types):
+        keep, eat, roast = individuals[3 * t:3 * t + 3]
+        for _ in range(keep):
+            actions.append(("keep", name, name))
+        for _ in range(eat):
+            actions.append(("eat", name, name))
+        for _ in range(roast):
+            actions.append(("roast", name, COOKED.get(name) or name))
+    return total, actions
+
+
 def find_best_plan(food_list, stat="Hunger", warly=False, losses=None):
     """Return ``(total_score, actions)`` for the best use of the inventory.
 
@@ -587,6 +709,14 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None):
 
     allowed = normalize_losses(losses)
     inventory = tuple(sorted(food_list))
+
+    if _USE_NATIVE:
+        native = _native_plan(
+            inventory, STAT_NAMES.index(stat), allowed, warly
+        )
+        if native is not None:
+            return native
+
     points = _solve_frontier(inventory, warly)
 
     feasible = [

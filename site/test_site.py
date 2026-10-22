@@ -58,6 +58,15 @@ class SiteApiTest(unittest.TestCase):
         )
         self.assertEqual(result["unknown"], ["Mystery Fruit"])
 
+    def test_too_many_ingredients_is_rejected(self):
+        payload = "\n".join(["Meat"] * (server.MAX_INGREDIENTS + 1))
+        with self.assertRaises(ValueError):
+            server.calculate({"ingredients": payload, "stat": "Hunger"})
+
+    def test_engine_is_reported(self):
+        result = server.calculate({"ingredients": "Meat\nMeat\nMeat\nIce", "stat": "Hunger"})
+        self.assertIn(result["engine"], ("C++", "Python"))
+
 
 if __name__ == "__main__":
     unittest.main()

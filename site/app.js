@@ -305,7 +305,8 @@
     els.planMeta.textContent =
       `${steps} step${steps === 1 ? "" : "s"} · ` +
       `${items} ingredient${items === 1 ? "" : "s"} · ` +
-      (data.warly ? "Warly recipes included" : "standard recipes");
+      (data.warly ? "Warly recipes included" : "standard recipes") +
+      ` · ${data.engine === "C++" ? "C++" : "Python"} engine`;
 
     fillChips(els.totalChips, data.totals);
 

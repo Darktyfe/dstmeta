@@ -25,8 +25,9 @@ CODE_DIR = ROOT.parent / "food_calc" / "code"
 sys.path.insert(0, str(CODE_DIR))
 
 import alg  # noqa: E402  (path is set up above)
+import cpp_engine  # noqa: E402
 
-MAX_INGREDIENTS = 18
+MAX_INGREDIENTS = 20
 MAX_BODY_BYTES = 1_000_000
 MAX_DISHES = 80
 STAT_KEYS = alg.STAT_NAMES
@@ -137,6 +138,7 @@ def calculate(payload):
         "stat": stat,
         "warly": warly,
         "losses": losses,
+        "engine": cpp_engine.engine_name(),
         "total": float(total),
         "totals": totals,
         "plan": [action_dict(action) for action in actions],

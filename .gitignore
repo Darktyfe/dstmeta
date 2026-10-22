@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+
+# The portable compiler downloaded by tools/fetch_compiler.py is local only.
+tools/mingw64/
+tools/winlibs.zip
