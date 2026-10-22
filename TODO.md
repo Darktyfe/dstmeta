@@ -2,8 +2,6 @@
 
 Режим Uncompromising mode(Ignore Ice)
 
-Режим Warly
-
 Выбор персонажа
 
 Warning: Do you have Drying Rack? Food can be dried (Kelp Fronds) to be more effective.
