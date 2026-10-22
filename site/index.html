@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DSTMeta — Crockpot Planner</title>
+  <meta name="description" content="Plan the best use of your Don't Starve Together food: crockpot dishes, campfire roasts, and raw snacks.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🍲</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-glow" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">🍲</span>
+        <span class="brand-text">DST<span>Meta</span></span>
+        <span class="alpha">alpha</span>
+      </a>
+      <p class="tagline">Don't Starve Together food &amp; crockpot planner</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">Chest to plate</p>
+      <h1>Make every ingredient count.</h1>
+      <p class="hero-text">
+        Tell us what is in your chest. We will find the best mix of crockpot
+        dishes, campfire roasts, and raw snacks for the stat you care about.
+      </p>
+    </section>
+
+    <form id="planner" class="workspace" autocomplete="off">
+      <section class="card ingredients-card">
+        <div class="card-head">
+          <span class="step-badge">1</span>
+          <h2>Your ingredients</h2>
+          <span id="item-count" class="count">0 items</span>
+        </div>
+        <label class="sr-only" for="ingredients">Ingredients, one per line</label>
+        <textarea id="ingredients" name="ingredients" spellcheck="false"
+          placeholder="Meat&#10;Meat&#10;Meat&#10;Ice&#10;Meat"></textarea>
+        <div class="ingredient-hint">
+          <span>One per line, up to 18. Duplicates matter.</span>
+          <button type="button" id="sample" class="link-button">Load example</button>
+        </div>
+      </section>
+
+      <aside class="card config-card">
+        <div class="card-head">
+          <span class="step-badge">2</span>
+          <h2>Config</h2>
+        </div>
+
+        <fieldset class="field">
+          <legend>Maximize</legend>
+          <div class="segmented" role="group" aria-label="Stat to maximize">
+            <button type="button" data-stat="Hunger" class="active">Hunger</button>
+            <button type="button" data-stat="Sanity">Sanity</button>
+            <button type="button" data-stat="Health">Health</button>
+          </div>
+        </fieldset>
+
+        <label class="switch-row">
+          <span>
+            <span class="switch-title">Warly recipes</span>
+            <span class="switch-sub">Portable Crock Pot exclusives</span>
+          </span>
+          <input type="checkbox" id="warly" name="warly">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+
+        <fieldset class="field">
+          <legend>Permissible losses</legend>
+          <p class="field-help">
+            How much of each stat the whole plan may lose.
+            <strong>0</strong> means never finish below zero.
+          </p>
+          <div class="loss-grid">
+            <label class="loss loss-hunger">
+              <span>Hunger</span>
+              <input type="number" id="loss-hunger" name="loss-hunger" aria-label="Allowed hunger loss" min="0" step="0.5" value="0">
+            </label>
+            <label class="loss loss-sanity">
+              <span>Sanity</span>
+              <input type="number" id="loss-sanity" name="loss-sanity" aria-label="Allowed sanity loss" min="0" step="0.5" value="0">
+            </label>
+            <label class="loss loss-health">
+              <span>Health</span>
+              <input type="number" id="loss-health" name="loss-health" aria-label="Allowed health loss" min="0" step="0.5" value="0">
+            </label>
+          </div>
+        </fieldset>
+
+        <button type="submit" id="calculate" class="primary">
+          <span class="button-label">Calculate plan</span>
+          <span class="button-spinner" aria-hidden="true"></span>
+        </button>
+        <p id="error" class="error" role="alert" hidden></p>
+      </aside>
+    </form>
+
+    <section id="results" class="results" hidden aria-live="polite">
+      <section class="card summary-card">
+        <div class="summary-main">
+          <p class="eyebrow">Best plan for <span id="summary-stat">Hunger</span></p>
+          <div class="total-line">
+            <span id="total-value">—</span>
+            <span id="total-unit" class="total-unit">hunger</span>
+          </div>
+          <p id="plan-meta" class="summary-sub"></p>
+        </div>
+        <div class="summary-side">
+          <div id="total-chips" class="chips"></div>
+          <p id="loss-summary" class="loss-line"></p>
+        </div>
+        <p id="unknown" class="warning" hidden></p>
+      </section>
+
+      <div class="result-grid">
+        <section class="card plan-card">
+          <div class="card-head">
+            <h2>Plan</h2>
+            <span class="pill">exhaustive</span>
+          </div>
+          <ol id="plan-steps" class="steps"></ol>
+        </section>
+
+        <section class="card best-card" id="best-card">
+          <p class="eyebrow">Best single dish</p>
+          <h3 id="best-name">—</h3>
+          <div id="best-stats" class="chips"></div>
+          <p class="combo-label">From</p>
+          <p id="best-combo" class="combo"></p>
+        </section>
+      </div>
+
+      <section class="card dishes-card">
+        <details open>
+          <summary>
+            <span>All cookable dishes</span>
+            <span id="dishes-count" class="pill">0</span>
+          </summary>
+          <p id="dishes-note" class="field-help"></p>
+          <div id="dishes-grid" class="dish-grid"></div>
+        </details>
+      </section>
+    </section>
+
+    <section class="note-strip">
+      <div>
+        <h2>How losses work</h2>
+        <p>
+          A plan is rejected if any final stat drops below the negative of its
+          permissible loss. Keep the defaults at <strong>0</strong> for a
+          no-loss plan, or raise a limit to trade one stat for a stronger
+          result in another.
+        </p>
+      </div>
+      <div>
+        <h2>What gets considered</h2>
+        <p>
+          Eating raw, roasting first, keeping an item, or cooking four items in
+          the pot. Plans are checked as a whole, not dish by dish.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Data from the Don't Starve wiki. Not affiliated with Klei Entertainment.</p>
+      <p class="footer-small">DSTMeta is a working name.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

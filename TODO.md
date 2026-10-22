@@ -12,11 +12,6 @@ OR
 
 Ignore Dried variants (Default=On)
 
-АЛГОРИТМ:
-```py
-range(len(food_list//4))
-```
-
 Grim Galette
 
 Ignore Milkmade Hat
@@ -26,3 +21,7 @@ Ignore Over time Stats
 get_good_condition
 
 get_bad_condition
+
+разные языки
+
+перевести алгоритмы для быстроты в другой язык

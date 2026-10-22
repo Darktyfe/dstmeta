@@ -1,4 +1,5 @@
 Asparagus: *Vegetable - 1
+Banana: *Fruit - 1
 Barnacles: *Meat - 0.25, *Fish - 0.25
 Batilisk Wing: *Meat - 0.5
 Berries: *Fruit - 0.5
@@ -7,6 +8,7 @@ Bitty Baitfish: *Meat - 0.5, *Fish - 0.5
 Black Catfish: *Meat - 1, *Fish - 1
 Bloomfin Tuna: *Meat - 0.5, *Fish - 0.5
 Blue Cap: *Vegetable - 0.5
+Braised Eggplant: *Vegetable - 1
 Bone Shards: *Inedible - 1
 Butter: *Dairy - 1, *Fat - 1
 Butterfly Wings: *Decoration - 2
@@ -17,6 +19,7 @@ Cave Banana: *Fruit - 1
 Charred Nostrils: *Meat - 0.5
 Collected Dust: *Decoration - 2
 Cooked Asparagus: *Vegetable - 1
+Cooked Banana: *Fruit - 1
 Cooked Barnacles: *Meat - 0.25, *Fish - 0.25
 Cooked Batilisk Wing: *Meat - 0.5
 Cooked Blue Cap: *Vegetable - 0.5
@@ -34,6 +37,7 @@ Cooked Kelp Fronds: *Vegetable - 0.5
 Cooked Leafy Meat: *Meat - 1
 Cooked Meat: *Meat - 1
 Cooked Moon Shroom: *Vegetable - 0.5
+Cooked Monster Meat: *Meat - 1, *Monster Meat - 1
 Cooked Morsel: *Meat - 0.5
 Cooked Nightberry: *Fruit - 1
 Cooked Red Cap: *Vegetable - 0.5
@@ -62,6 +66,7 @@ Electric Milk: *Dairy - 1
 Extra Smelly Durian: *Monster Meat - 1, *Fruit - 1
 Fallounder: *Meat - 0.5, *Fish - 0.5
 Fig: *Fruit - 0.5
+Fish: *Meat - 1, *Fish - 1
 Fish Morsel: *Meat - 0.5, *Fish - 0.5
 Fish Steak: *Meat - 1, *Fish - 1
 Fishy Jerky: *Meat - 1, *Fish - 1
@@ -84,6 +89,8 @@ Ice Bream: *Meat - 1, *Fish - 1, *Frozen - 1
 Jerky: *Meat - 1
 Juicy Berries: *Fruit - 0.5
 Kelp Fronds: *Vegetable - 0.5
+Koalefant Trunk: *Meat - 1
+Koalefant Trunk Steak: *Meat - 1
 Leafy Meat: *Meat - 1
 Lesser Glow Berry: *Fruit - 0.5
 Lichen: *Vegetable - 1
@@ -106,15 +113,16 @@ Pepper: *Vegetable - 1
 Pomegranate: *Fruit - 1
 Popcorn: *Vegetable - 1
 Popperfish: *Vegetable - 1
+Potato: *Vegetable - 1
 Prepared Dragon Fruit: *Fruit - 1
 Pumpkin: *Vegetable - 1
 Raw Fish: *Meat - 1, *Fish - 1
 Red Cap: *Vegetable - 0.5
 Ripe Stone Fruit: *Vegetable - 1
-Roast Garlic: *Vegetable - 1
-Roast Onion: *Vegetable - 1
-Roast Potato: *Vegetable - 1
-Roast Toma Root: *Vegetable - 1
+Roasted Garlic: *Vegetable - 1
+Roasted Onion: *Vegetable - 1
+Roasted Potato: *Vegetable - 1
+Roasted Toma Root: *Vegetable - 1
 Roasted Berries: *Fruit - 0.5
 Roasted Birchnut: *Seed - 1
 Roasted Carrot: *Vegetable - 1
@@ -134,4 +142,5 @@ Toma Root: *Vegetable - 1
 Twigs: *Inedible - 1
 Volt Goat Horn: *Inedible - 1
 Watermelon: *Fruit - 1
+Winter Koalefant Trunk: *Meat - 1
 Wobster: *Meat - 1, *Fish - 1
