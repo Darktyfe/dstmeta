@@ -67,7 +67,8 @@ dish. It is an exhaustive search, so it finds the highest total for the chosen
 stat rather than only the best single dish. When several raw/cooked variants
 produce the same dish, the least-processed variant is preferred, so the planner
 does not roast an ingredient before putting it in the pot unless doing so is
-actually useful.
+actually useful. If it is useful, the plan lists that campfire step explicitly
+(`roast Fish Morsel -> Cooked Fish Morsel (for the pot)`).
 
 ## Tests
 
@@ -151,6 +152,10 @@ accepted as aliases of `*Monster Meat` and `*Dairy`.
 * Recipe selection models tags and priorities, not cooking time or freshness.
 * Drying racks are not part of the search; `cooked_table.txt` only covers
   campfire cooking.
+* Completed crockpot dishes cannot be reused as ingredients. The pot also
+  rejects Dead Wobster, Delicious Wobster and Cooked Mandrake, even though they
+  are edible; those items are excluded from plans and dish lists.
 * A few recipes in the game have raw-only ingredient rules (for example Turkey
-  Dinner). Those rules are not modelled; the engine treats cooked forms as
-  interchangeable with their raw counterparts in the pot.
+  Dinner). Those rules are not modelled; apart from the rejected items above,
+  the engine treats cooked forms as interchangeable with their raw counterparts
+  in the pot.

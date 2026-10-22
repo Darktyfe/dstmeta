@@ -49,6 +49,15 @@ class SiteApiTest(unittest.TestCase):
         self.assertEqual(allowed["total"], 62.5)
         self.assertTrue(any(step["kind"] == "cook" for step in allowed["plan"]))
 
+    def test_plan_works_with_fewer_than_four_ingredients(self):
+        result = server.calculate({"ingredients": "Carrot", "stat": "Health"})
+        self.assertEqual(result["total"], 3)
+        self.assertEqual(result["plan"][0]["kind"], "roast")
+
+    def test_calculate_rejects_non_object_payloads(self):
+        with self.assertRaises(ValueError):
+            server.calculate(["Meat", "Ice"])
+
     def test_unknown_ingredients_are_reported(self):
         result = server.calculate(
             {

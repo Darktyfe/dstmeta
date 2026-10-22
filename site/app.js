@@ -43,8 +43,8 @@
 
   const STAT_KEYS = ["Hunger", "Sanity", "Health"];
   const STAT_CLASS = { Hunger: "hunger", Sanity: "sanity", Health: "health" };
-  const STEP_ICON = { cook: "🍲", roast: "🔥", eat: "🍴", keep: "✋" };
-  const STEP_VERB = { cook: "Cook", roast: "Roast", eat: "Eat", keep: "Keep" };
+  const STEP_ICON = { cook: "🍲", roast: "🔥", prep: "🔥", eat: "🍴", keep: "✋" };
+  const STEP_VERB = { cook: "Cook", roast: "Roast", prep: "Roast", eat: "Eat", keep: "Keep" };
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -204,7 +204,7 @@
       title.append(document.createTextNode(action.ingredients.join(", ")));
       title.append(el("span", "arrow", "→"));
       title.append(document.createTextNode(action.food));
-    } else if (action.kind === "roast") {
+    } else if (action.kind === "roast" || action.kind === "prep") {
       title.append(document.createTextNode(action.source));
       title.append(el("span", "arrow", "→"));
       title.append(document.createTextNode(action.food));
@@ -225,6 +225,8 @@
     const stats = el("div", "step-stats");
     if (action.kind === "keep") {
       stats.append(el("span", "mini-stat", "not eaten"));
+    } else if (action.kind === "prep") {
+      stats.append(el("span", "mini-stat", "for the pot"));
     } else {
       STAT_KEYS.forEach((stat) => {
         stats.append(miniStat(stat, action.stats[stat] ?? 0));
