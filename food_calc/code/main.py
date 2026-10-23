@@ -18,7 +18,7 @@ import alg
 
 def get_user_food():
     """Read ingredients from stdin until ``done`` or end of input."""
-    print(f"Enter food items one per line (at least {alg.SLOTS}), then 'done':")
+    print("Enter food items one per line, then 'done':")
     food = []
     while True:
         try:
@@ -148,20 +148,19 @@ def main(argv=None):
     dishes = alg.cookable_dishes(ingredients, args.warly, args.dried)
     if not dishes:
         print("Nothing can be cooked from these ingredients.")
-        return 0
-
-    ranking = sorted(
-        dishes,
-        key=lambda dish: (-alg.get_food_stat(dish, args.stat), dish),
-    )
-    print(f"Cookable dishes ({len(ranking)}):")
-    for dish in ranking:
-        score = alg.get_food_stat(dish, args.stat)
-        print(
-            f"  {dish}: {format_stats(dish)}"
-            f"  [{args.stat.lower()} {score:g},"
-            f" {len(dishes[dish])} combination(s)]"
+    else:
+        ranking = sorted(
+            dishes,
+            key=lambda dish: (-alg.get_food_stat(dish, args.stat), dish),
         )
+        print(f"Cookable dishes ({len(ranking)}):")
+        for dish in ranking:
+            score = alg.get_food_stat(dish, args.stat)
+            print(
+                f"  {dish}: {format_stats(dish)}"
+                f"  [{args.stat.lower()} {score:g},"
+                f" {len(dishes[dish])} combination(s)]"
+            )
 
     best = alg.best_single_dish(ingredients, args.stat, args.warly, args.dried)
     if best is not None:
@@ -187,7 +186,12 @@ def main(argv=None):
     print()
     print(f"Best plan by {args.stat} (total {total:g}):")
     for action in actions:
-        print(f"  {alg.describe_action(action)}: {format_stats(action[2])}")
+        if action[0] == "keep":
+            print(f"  {alg.describe_action(action)} (not eaten)")
+        elif action[0] == "prep":
+            print(f"  {alg.describe_action(action)}")
+        else:
+            print(f"  {alg.describe_action(action)}: {format_stats(action[2])}")
     print(
         "  totals: "
         + ", ".join(f"{stat.lower()} {value:g}" for stat, value in totals.items())

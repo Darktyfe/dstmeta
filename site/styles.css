@@ -27,6 +27,11 @@
   box-sizing: border-box;
 }
 
+/* Author display rules must not override the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
 html {
   color-scheme: dark;
   scroll-behavior: smooth;

@@ -23,7 +23,9 @@ much slower than a campfire.
 from __future__ import annotations
 
 import itertools
+import math
 import re
+from collections import Counter
 from functools import lru_cache
 
 import basic_func
@@ -40,6 +42,18 @@ DRIED = basic_func.file_to_list("dried_table.txt")
 
 STAT_NAMES = ("Hunger", "Sanity", "Health")
 SLOTS = 4
+
+# Prepared dishes cannot be used as crockpot ingredients.  The game also
+# refuses Dead Wobster / Delicious Wobster (a living Wobster is required for
+# Wobster recipes) and Cooked Mandrake (Mandrake Soup needs a raw Mandrake).
+_RECIPE_DISHES = frozenset(
+    name for name, _, _, _ in RECIPES + WARLY_RECIPES
+)
+_NON_POT_FOODS = _RECIPE_DISHES | {
+    "Dead Wobster",
+    "Delicious Wobster",
+    "Cooked Mandrake",
+}
 
 # Words that describe how an ingredient was prepared rather than what it is.
 _PROCESSING_WORDS = frozenset({
@@ -184,6 +198,8 @@ def crockpot(ingredients, warly=False):
     ingredients = tuple(ingredients)
     if len(ingredients) != SLOTS:
         raise ValueError(f"the crockpot needs {SLOTS} ingredients, got {len(ingredients)}")
+    if any(name in _NON_POT_FOODS for name in ingredients):
+        return None
 
     tag_maps = [ingredient_tags(name) for name in ingredients]
     recipes = RECIPES + WARLY_RECIPES if warly else RECIPES
@@ -539,6 +555,8 @@ def _checked_loss(value, stat):
         number = float(value)
     except (TypeError, ValueError):
         raise ValueError(f"allowed loss for {stat} must be a number") from None
+    if not math.isfinite(number):
+        raise ValueError(f"allowed loss for {stat} must be a finite number")
     if number < 0:
         raise ValueError(f"allowed loss for {stat} cannot be negative")
     return number
@@ -649,6 +667,22 @@ def _solve_frontier(inventory, warly, dried=False):
         points = list(_individual_frontier(remaining, dried))
         first = remaining[0]
         rest = remaining[1:]
+
+        # Either the first item is used on its own (kept, eaten or roasted),
+        # in which case the rest of the inventory is still free to cook, or it
+        # joins three other items in the pot.  Enumerating only the pot groups
+        # would miss every plan that leaves the first item out of the pot but
+        # cooks some of the remaining items.
+        points = []
+        for option_stats, option_action in _individual_options(first):
+            for sub_stats, sub_actions in solve(rest):
+                points.append(
+                    (
+                        _vector_add(option_stats, sub_stats),
+                        (option_action,) + sub_actions,
+                    )
+                )
+
         seen = set()
         for extra in itertools.combinations(rest, 3):
             key = tuple(sorted((first,) + extra))
@@ -839,14 +873,16 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
         return vector[index], vector[2], vector[1], -pot_cooked, -step_count
 
     vector, actions = max(feasible, key=rank)
-    return vector[index], list(actions)
+    return vector[index], _expand_prep(actions, inventory)
 
 
 def plan_totals(actions):
     """Return ``{stat: total}`` for the food produced by a plan."""
     totals = {stat: 0.0 for stat in STAT_NAMES}
     for action in actions:
-        if action[0] == "keep":
+        # Kept food is not eaten, and prepping an ingredient only readies it
+        # for the pot; neither contributes to the plan's totals.
+        if action[0] in ("keep", "prep"):
             continue
         stats = get_food_stats(action[2]) or (0.0, 0.0, 0.0)
         for stat, value in zip(STAT_NAMES, stats):

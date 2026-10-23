@@ -2,8 +2,6 @@
 
 Режим Uncompromising mode(Ignore Ice)
 
-Режим Warly
-
 Выбор персонажа
 
 Warning: Do you have Drying Rack? Food can be dried (Kelp Fronds) to be more effective.
@@ -26,4 +24,3 @@ get_bad_condition
 
 перевести алгоритмы для быстроты в другой язык
 
-Кеширование crockpot recipes, чтобы программа не готовила еду заново, а обращалась ко всем доступным рецептам.

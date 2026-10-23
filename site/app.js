@@ -230,6 +230,8 @@
     const stats = el("div", "step-stats");
     if (action.kind === "keep") {
       stats.append(el("span", "mini-stat", "not eaten"));
+    } else if (action.kind === "prep") {
+      stats.append(el("span", "mini-stat", "for the pot"));
     } else {
       STAT_KEYS.forEach((stat) => {
         stats.append(miniStat(stat, action.stats[stat] ?? 0));

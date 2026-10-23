@@ -99,6 +99,8 @@ def dish_dict(dish, combo, score):
 
 def calculate(payload):
     """Run one calculation and return JSON-serialisable results."""
+    if not isinstance(payload, dict):
+        raise ValueError("request body must be a JSON object")
     names = parse_ingredients(payload.get("ingredients", ""))
     stat = payload.get("stat", "Hunger")
     if stat not in STAT_KEYS:

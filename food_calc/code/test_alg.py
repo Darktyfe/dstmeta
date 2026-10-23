@@ -67,6 +67,26 @@ class CrockpotTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             alg.crockpot(("Meat", "Meat"))
 
+    def test_dead_and_delicious_wobster_are_not_pot_ingredients(self):
+        # The game only accepts a living Wobster in the Crock Pot.
+        self.assertIsNone(
+            alg.crockpot(("Dead Wobster", "Ice", "Twigs", "Meat"))
+        )
+        self.assertIsNone(
+            alg.crockpot(("Delicious Wobster", "Ice", "Twigs", "Meat"))
+        )
+
+    def test_prepared_dishes_are_not_pot_ingredients(self):
+        self.assertIsNone(
+            alg.crockpot(("Meatballs", "Ice", "Twigs", "Meat"))
+        )
+
+    def test_cooked_mandrake_is_not_a_pot_ingredient(self):
+        # Mandrake Soup needs a raw Mandrake; roasting it first is one-way.
+        self.assertIsNone(
+            alg.crockpot(("Cooked Mandrake", "Ice", "Twigs", "Meat"))
+        )
+
 
 class InventoryTest(unittest.TestCase):
     def test_cookable_dishes(self):
@@ -97,6 +117,33 @@ class InventoryTest(unittest.TestCase):
         self.assertEqual(sorted(cook[1]), ["Ice", "Meat", "Meat", "Meat"])
         self.assertEqual(alg.plan_totals(actions), {"Hunger": 175, "Sanity": 5, "Health": 15})
 
+    def test_plan_can_leave_the_first_item_out_of_the_pot(self):
+        # Regression: the search used to skip every plan where the first
+        # (sorted) inventory item was eaten individually while later items were
+        # still cooked.  Roasting the berries leaves the ice for the pot and
+        # produces one more health point than the old 44.5 plan.
+        total, actions = alg.find_best_plan(
+            ["Honey", "Ice", "Fish", "Ice", "Twigs", "Fig", "Berries"],
+            "Health",
+            warly=True,
+            losses={"Hunger": 5, "Sanity": 20, "Health": 0},
+        )
+        self.assertEqual(total, 45)
+        self.assertAlmostEqual(alg.plan_totals(actions)["Health"], 45)
+
+    def test_plan_lists_campfire_prep_for_pot_ingredients(self):
+        # Roasting the fish morsel removes its meat tag, which lets the soup
+        # recipe win; the plan has to show that campfire step.
+        total, actions = alg.find_best_plan(
+            ["Fish Morsel", "Onion", "Toma Root", "Roasted Potato", "Nightberry"],
+            "Sanity",
+        )
+        self.assertEqual(total, 33)
+        kinds = [action[0] for action in actions]
+        self.assertIn("prep", kinds)
+        self.assertLess(kinds.index("prep"), kinds.index("cook"))
+        self.assertAlmostEqual(alg.plan_totals(actions)["Sanity"], 33)
+
     def test_permissible_losses(self):
         ingredients = ["Monster Meat", "Monster Meat", "Ice", "Ice"]
         # With no losses allowed, the negative Monster Tartare is rejected.
@@ -120,6 +167,8 @@ class InventoryTest(unittest.TestCase):
         self.assertEqual(allowed, {"Hunger": 1.0, "Sanity": 2.0, "Health": 3.0})
         with self.assertRaises(ValueError):
             alg.normalize_losses([0, -1, 0])
+        with self.assertRaises(ValueError):
+            alg.normalize_losses({"Hunger": float("inf"), "Sanity": 0, "Health": 0})
 
     def test_best_sequence_uses_two_groups(self):
         total, actions = alg.find_best_plan(["Meat"] * 8, "Hunger")

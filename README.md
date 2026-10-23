@@ -226,8 +226,9 @@ accepted as aliases of `*Monster Meat` and `*Dairy`.
   A dish may have a negative stat if the rest of the plan offsets it, and the
   whole result stays within the budget.
 * Recipe selection models tags and priorities, not cooking time or freshness.
-  Drying-rack times are therefore ignored; `--dried` only adds the dried food
+* Drying-rack times are therefore ignored; `--dried` only adds the dried food
   as an option.
 * A few recipes in the game have raw-only ingredient rules (for example Turkey
-  Dinner). Those rules are not modelled; the engine treats cooked forms as
-  interchangeable with their raw counterparts in the pot.
+  Dinner). Those rules are not modelled; apart from the rejected items above,
+  the engine treats cooked forms as interchangeable with their raw counterparts
+  in the pot.
