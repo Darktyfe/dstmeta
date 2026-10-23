@@ -11,6 +11,7 @@
     sample: $("#sample"),
     statButtons: $$(".segmented button"),
     warly: $("#warly"),
+    ignoreDried: $("#ignore-dried"),
     lossHunger: $("#loss-hunger"),
     lossSanity: $("#loss-sanity"),
     lossHealth: $("#loss-health"),
@@ -24,7 +25,6 @@
     planMeta: $("#plan-meta"),
     totalChips: $("#total-chips"),
     lossSummary: $("#loss-summary"),
-    unknown: $("#unknown"),
     planSteps: $("#plan-steps"),
     bestCard: $("#best-card"),
     bestName: $("#best-name"),
@@ -43,8 +43,12 @@
 
   const STAT_KEYS = ["Hunger", "Sanity", "Health"];
   const STAT_CLASS = { Hunger: "hunger", Sanity: "sanity", Health: "health" };
-  const STEP_ICON = { cook: "🍲", roast: "🔥", eat: "🍴", keep: "✋" };
-  const STEP_VERB = { cook: "Cook", roast: "Roast", eat: "Eat", keep: "Keep" };
+  const STEP_ICON = {
+    cook: "🍲", roast: "🔥", dry: "🥓", eat: "🍴", keep: "✋",
+  };
+  const STEP_VERB = {
+    cook: "Cook", roast: "Roast", dry: "Dry", eat: "Eat", keep: "Keep",
+  };
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -135,6 +139,7 @@
           ingredients,
           stat: state.stat,
           warly: els.warly.checked,
+          ignoreDried: els.ignoreDried.checked,
           losses: lossesPayload(),
         }),
       });
@@ -204,7 +209,7 @@
       title.append(document.createTextNode(action.ingredients.join(", ")));
       title.append(el("span", "arrow", "→"));
       title.append(document.createTextNode(action.food));
-    } else if (action.kind === "roast") {
+    } else if (action.kind === "roast" || action.kind === "dry") {
       title.append(document.createTextNode(action.source));
       title.append(el("span", "arrow", "→"));
       title.append(document.createTextNode(action.food));
@@ -240,18 +245,6 @@
     data.plan.forEach((action) => {
       els.planSteps.append(stepNode(action));
     });
-  }
-
-  function renderUnknown(names) {
-    if (!names.length) {
-      els.unknown.hidden = true;
-      els.unknown.textContent = "";
-      return;
-    }
-    els.unknown.hidden = false;
-    els.unknown.textContent =
-      `Not in the food data: ${names.join(", ")}. ` +
-      "They were treated as plain ingredients.";
   }
 
   function renderDishes(data) {
@@ -306,6 +299,7 @@
       `${steps} step${steps === 1 ? "" : "s"} · ` +
       `${items} ingredient${items === 1 ? "" : "s"} · ` +
       (data.warly ? "Warly recipes included" : "standard recipes") +
+      (data.dried ? " · drying rack enabled" : "") +
       ` · ${data.engine === "C++" ? "C++" : "Python"} engine`;
 
     fillChips(els.totalChips, data.totals);
@@ -319,7 +313,6 @@
       els.lossSummary.textContent = "No net losses allowed";
     }
 
-    renderUnknown(data.unknown);
     renderPlan(data);
 
     if (data.bestDish) {
@@ -363,6 +356,7 @@
 
   els.form.addEventListener("submit", calculate);
   els.warly.addEventListener("change", clearError);
+  els.ignoreDried.addEventListener("change", clearError);
   els.ingredients.addEventListener("input", clearError);
 
   setStat(state.stat);

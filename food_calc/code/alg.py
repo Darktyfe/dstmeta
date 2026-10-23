@@ -12,9 +12,12 @@ The engine follows the rules of the Don't Starve Together crockpot:
 * a recipe is rejected if any slot carries an excluded tag;
 * the valid recipe with the highest priority wins.
 
-Ingredients can also be roasted on a campfire.  ``cooked_table.txt`` maps raw
-foods to their cooked counterparts, and :func:`find_best_plan` weighs eating
-raw, roasting and eating, and cooking four items in the pot.
+Ingredients can also be roasted on a campfire or dried on a drying rack.
+``cooked_table.txt`` maps raw foods to their cooked counterparts and
+``dried_table.txt`` maps them to their dried counterparts (jerky, dried kelp,
+...).  :func:`find_best_plan` weighs eating raw, roasting, drying and cooking
+four items in the pot.  Dried variants are opt-in because a drying rack is
+much slower than a campfire.
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ WARLY_RECIPES = basic_func.file_to_list("warly_recipes.txt")
 VALUES = basic_func.file_to_list("value.txt")
 STATS = basic_func.file_to_list("food.txt")
 COOKED = basic_func.file_to_list("cooked_table.txt")
+DRIED = basic_func.file_to_list("dried_table.txt")
 
 STAT_NAMES = ("Hunger", "Sanity", "Health")
 SLOTS = 4
@@ -216,6 +220,11 @@ def get_cooked_variant(name):
     return COOKED.get(name)
 
 
+def get_dried_variant(name):
+    """Return the drying-rack form of ``name``, or ``None``."""
+    return DRIED.get(name)
+
+
 def can_comb(food_list):
     """Return every distinct 4-ingredient combination of ``food_list``.
 
@@ -226,23 +235,68 @@ def can_comb(food_list):
 
 
 @lru_cache(maxsize=None)
-def _variant_options(name):
-    """Return the raw name plus its cooked form if the tags differ.
-
-    A cooked form with identical tags always cooks into the same dish, so it
-    does not need to be tried in the pot.
-    """
-    cooked = COOKED.get(name)
-    if cooked is not None and ingredient_tags(cooked) != ingredient_tags(name):
-        return (name, cooked)
-    return (name,)
+def _recipe_tags():
+    """Return every tag a crockpot recipe can observe."""
+    tags = set()
+    for recipes in (RECIPES, WARLY_RECIPES):
+        for _, conditions, excludes, _ in recipes:
+            for text in _split_list(conditions):
+                tags.add(_parse_condition(text)[2])
+            for text in _split_list(excludes):
+                tags.add(_canonical_tag(text))
+    return frozenset(tags)
 
 
 @lru_cache(maxsize=None)
-def _variant_combos(combo):
-    """Return every distinct raw/cooked variant of a 4-item combination."""
+def _pot_signature(name):
+    """Return the tags of ``name`` that can change a crockpot result.
+
+    Tags that no recipe looks at (for example the implicit "jerky" name tag)
+    cannot change the dish, so ingredients with the same signature are
+    interchangeable in the pot.
+    """
+    tags = ingredient_tags(name)
+    observed = _recipe_tags()
+    return tuple(
+        sorted((tag, weight) for tag, weight in tags.items() if tag in observed)
+    )
+
+
+@lru_cache(maxsize=None)
+def _variant_options(name, dried=False):
+    """Return the raw name plus processed forms that cook differently.
+
+    A cooked or dried form with the same pot-relevant tags always cooks into
+    the same dish, so it does not need to be tried in the pot.  The raw form
+    is always first and therefore wins ties.
+    """
+    variants = [name]
+    seen = {_pot_signature(name)}
+
+    candidates = []
+    cooked = COOKED.get(name)
+    if cooked is not None:
+        candidates.append(cooked)
+    if dried:
+        dried_name = DRIED.get(name)
+        if dried_name is not None:
+            candidates.append(dried_name)
+
+    for candidate in candidates:
+        signature = _pot_signature(candidate)
+        if signature in seen:
+            continue
+        seen.add(signature)
+        variants.append(candidate)
+    return tuple(variants)
+
+
+@lru_cache(maxsize=None)
+def _variant_combos(combo, dried=False):
+    """Return every distinct raw/cooked/dried variant of a 4-item combo."""
     variants = set()
-    for variant in itertools.product(*(_variant_options(item) for item in combo)):
+    options = [_variant_options(item, dried) for item in combo]
+    for variant in itertools.product(*options):
         variants.add(tuple(sorted(variant)))
     return tuple(sorted(variants))
 
@@ -252,26 +306,39 @@ def _cooked_names():
     return frozenset(COOKED.values())
 
 
+@lru_cache(maxsize=None)
+def _dried_names():
+    return frozenset(DRIED.values())
+
+
 def _cooked_count(combo):
     """How many of these ingredients are cooked forms (for tie-breaking)."""
     cooked_names = _cooked_names()
     return sum(1 for name in combo if name in cooked_names)
 
 
+def _processed_count(combo):
+    """How many of these ingredients were processed into another item."""
+    cooked_names = _cooked_names()
+    dried_names = _dried_names()
+    return sum(1 for name in combo if name in cooked_names or name in dried_names)
+
+
 def _combo_key(combo):
-    return _cooked_count(combo), combo
+    return _processed_count(combo), combo
 
 
-def cookable_dishes(food_list, warly=False):
+def cookable_dishes(food_list, warly=False, dried=False):
     """Return ``{dish: [combination, ...]}`` for the given inventory.
 
-    Combinations include raw and campfire-cooked ingredients.  Each dish's
-    combinations are ordered least-processed first, so the rawest one is
-    preferred when several produce the same dish.
+    Combinations include raw, campfire-cooked and (when ``dried`` is true)
+    drying-rack ingredients.  Each dish's combinations are ordered least
+    processed first, so the rawest one is preferred when several produce the
+    same dish.
     """
     dishes = {}
     for combo in can_comb(food_list):
-        for used in _variant_combos(combo):
+        for used in _variant_combos(combo, dried):
             dish = cook(used, warly)
             if dish is None:
                 continue
@@ -324,13 +391,24 @@ def resolve_food_name(name):
     return lookup.get(normalized)
 
 
+def unknown_food_message(names):
+    """Return a user-facing error for names missing from the food data."""
+    unique = list(dict.fromkeys(names))
+    if len(unique) == 1:
+        subject = f"{unique[0]!r} is not a food"
+    else:
+        subject = f"{', '.join(repr(name) for name in unique)} are not foods"
+    return f"{subject} and should be removed from the ingredient list."
+
+
 @lru_cache(maxsize=None)
-def _item_action(name, stat):
+def _item_action(name, stat, dried=False):
     """Return ``(value, action)`` for eating one item on its own.
 
-    The action is one of ``("keep", name, name)``, ``("eat", name, name)`` or
-    ``("roast", name, cooked)``.  Keeping an item is the fallback because it
-    contributes nothing instead of a negative value.
+    The action is one of ``("keep", name, name)``, ``("eat", name, name)``,
+    ``("roast", name, cooked)`` or ``("dry", name, dried)``.  Keeping an item
+    is the fallback because it contributes nothing instead of a negative
+    value.
     """
     best_value = 0.0
     best_action = ("keep", name, name)
@@ -347,25 +425,33 @@ def _item_action(name, stat):
             best_value = cooked_value
             best_action = ("roast", name, cooked)
 
+    if dried:
+        dried_name = DRIED.get(name)
+        if dried_name is not None:
+            dried_value = get_food_stat(dried_name, stat)
+            if dried_value > best_value:
+                best_value = dried_value
+                best_action = ("dry", name, dried_name)
+
     return best_value, best_action
 
 
-def best_item_action(name, stat="Hunger"):
+def best_item_action(name, stat="Hunger", dried=False):
     """Return the best way to consume a single item."""
-    return _item_action(name, stat)[1]
+    return _item_action(name, stat, dried)[1]
 
 
 @lru_cache(maxsize=None)
-def _pot_options(combo, warly):
+def _pot_options(combo, warly, dried=False):
     """Return ``(dish, ingredients, stats)`` for every useful dish this combo makes.
 
-    When several raw/cooked variants produce the same dish, the least-processed
-    variant is kept, so the UI never suggests cooking meat for no reason.  A
-    dish that is no better than simply eating the same four items is dropped:
-    it can never improve a plan.
+    When several raw/cooked/dried variants produce the same dish, the least
+    processed variant is kept, so the UI never suggests cooking meat for no
+    reason.  A dish that is no better than simply eating the same four items
+    is dropped: it can never improve a plan.
     """
     by_dish = {}
-    for used in _variant_combos(combo):
+    for used in _variant_combos(combo, dried):
         dish = cook(used, warly)
         if dish is None:
             continue
@@ -376,7 +462,7 @@ def _pot_options(combo, warly):
 
     # If eating the four items individually is at least as good in every stat,
     # using the pot for this particular dish cannot help any continuation.
-    individual = [vector for vector, _ in _individual_frontier(combo)]
+    individual = [vector for vector, _ in _individual_frontier(combo, dried)]
     candidates = []
     for dish, (used, stats) in sorted(by_dish.items()):
         if any(
@@ -408,13 +494,13 @@ def _pot_options(combo, warly):
     )
 
 
-def best_single_dish(food_list, stat="Hunger", warly=False):
+def best_single_dish(food_list, stat="Hunger", warly=False, dried=False):
     """Return ``(score, dish, combination)`` for the best single dish.
 
     Returns ``None`` when nothing can be cooked.
     """
     best = None
-    for dish, combinations in cookable_dishes(food_list, warly).items():
+    for dish, combinations in cookable_dishes(food_list, warly, dried).items():
         score = get_food_stat(dish, stat)
         if best is None or score > best[0]:
             best = (score, dish, combinations[0])
@@ -500,8 +586,8 @@ def _pareto(points):
 
 
 @lru_cache(maxsize=None)
-def _individual_options(name):
-    """Return ``(stats, action)`` for keeping, eating or roasting one item."""
+def _individual_options(name, dried=False):
+    """Return ``(stats, action)`` for keeping, eating, roasting or drying one item."""
     options = [((0.0, 0.0, 0.0), ("keep", name, name))]
 
     stats = get_food_stats(name)
@@ -515,15 +601,25 @@ def _individual_options(name):
             options.append(
                 (tuple(float(value) for value in cooked_stats), ("roast", name, cooked))
             )
+
+    if dried:
+        dried_name = DRIED.get(name)
+        if dried_name is not None:
+            dried_stats = get_food_stats(dried_name)
+            if dried_stats is not None:
+                options.append(
+                    (tuple(float(value) for value in dried_stats),
+                     ("dry", name, dried_name))
+                )
     return tuple(options)
 
 
 @lru_cache(maxsize=None)
-def _individual_frontier(items):
+def _individual_frontier(items, dried=False):
     """Pareto frontier of eating every item in ``items`` individually."""
     points = [((0.0, 0.0, 0.0), ())]
     for item in items:
-        options = _individual_options(item)
+        options = _individual_options(item, dried)
         points = [
             (_vector_add(vector, option_vector), actions + (action,))
             for vector, actions in points
@@ -540,17 +636,17 @@ def _remove_items(remaining, key):
     return tuple(rest)
 
 
-def _solve_frontier(inventory, warly):
+def _solve_frontier(inventory, warly, dried=False):
     """Return every nondominated plan for ``inventory`` as ``(stats, actions)``."""
     memo = {}
 
     def solve(remaining):
         if not remaining:
-            return _individual_frontier(remaining)
+            return _individual_frontier(remaining, dried)
         if remaining in memo:
             return memo[remaining]
 
-        points = list(_individual_frontier(remaining))
+        points = list(_individual_frontier(remaining, dried))
         first = remaining[0]
         rest = remaining[1:]
         seen = set()
@@ -561,7 +657,7 @@ def _solve_frontier(inventory, warly):
             seen.add(key)
 
             sub = solve(_remove_items(remaining, key))
-            for dish, used, dish_stats in _pot_options(key, warly):
+            for dish, used, dish_stats in _pot_options(key, warly, dried):
                 action = ("cook", used, dish)
                 for sub_stats, sub_actions in sub:
                     points.append(
@@ -597,7 +693,7 @@ def _type_combos(counts, size, start=0, chosen=()):
             counts[t] += 1
 
 
-def _native_task(inventory, warly):
+def _native_task(inventory, warly, dried=False):
     """Build the flat arrays for the native engine, or None outside its limits.
 
     Returns ``(task, types, dish_names, used_by)``: ``task`` packs stats and
@@ -613,12 +709,12 @@ def _native_task(inventory, warly):
     if len(inventory) > _NATIVE_MAX_INSTANCES:
         return None
 
-    # Individual options per type, in keep/eat/roast order.
+    # Individual options per type, in keep/eat/roast/dry order.
     ind_off = [0]
     ind_kind = []
     ind_stats = []
     for name in types:
-        for vector, action in _individual_options(name):
+        for vector, action in _individual_options(name, dried):
             ind_kind.append(cpp_engine.ACTION_KINDS[action[0]])
             ind_stats.extend(float(value) for value in vector)
         ind_off.append(len(ind_kind))
@@ -644,7 +740,7 @@ def _native_task(inventory, warly):
 
     for combo in _type_combos(types_with_counts, 4):
         names = tuple(types[t] for t in combo)
-        options = _pot_options(names, warly)
+        options = _pot_options(names, warly, dried)
         pot_keys.extend(combo)
         for dish, used, stats in options:
             pot_dish.append(dish_id(dish))
@@ -658,14 +754,14 @@ def _native_task(inventory, warly):
     return task, types, dish_names, used_by
 
 
-def _native_plan(inventory, stat_index, allowed, warly):
+def _native_plan(inventory, stat_index, allowed, warly, dried=False):
     """Return ``(total, actions)`` from the native engine, or None."""
     import cpp_engine
 
     if not cpp_engine.available():
         return None
 
-    built = _native_task(inventory, warly)
+    built = _native_task(inventory, warly, dried)
     if built is None:
         return None
     task, types, dish_names, used_by = built
@@ -686,23 +782,27 @@ def _native_plan(inventory, stat_index, allowed, warly):
         used = used_by[(combo, dish_id)]
         actions.append(("cook", tuple(used), dish_names[dish_id]))
     for t, name in enumerate(types):
-        keep, eat, roast = individuals[3 * t:3 * t + 3]
+        keep, eat, roast, dry = individuals[4 * t:4 * t + 4]
         for _ in range(keep):
             actions.append(("keep", name, name))
         for _ in range(eat):
             actions.append(("eat", name, name))
         for _ in range(roast):
             actions.append(("roast", name, COOKED.get(name) or name))
+        for _ in range(dry):
+            actions.append(("dry", name, DRIED.get(name) or name))
     return total, actions
 
 
-def find_best_plan(food_list, stat="Hunger", warly=False, losses=None):
+def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
+                   dried=False):
     """Return ``(total_score, actions)`` for the best use of the inventory.
 
-    Every item is either eaten raw, roasted on a campfire and eaten, kept
-    because it would be harmful, or grouped with three others into a crockpot
-    dish.  ``losses`` limits how far the final totals may drop below zero for
-    each stat; the default ``0, 0, 0`` forbids any net loss.
+    Every item is either eaten raw, roasted on a campfire, dried on a drying
+    rack (only when ``dried`` is true), kept because it would be harmful, or
+    grouped with three others into a crockpot dish.  ``losses`` limits how far
+    the final totals may drop below zero for each stat; the default
+    ``0, 0, 0`` forbids any net loss.
     """
     if stat not in STAT_NAMES:
         raise ValueError(f"Unknown stat: {stat!r} (expected one of {STAT_NAMES})")
@@ -712,12 +812,12 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None):
 
     if _USE_NATIVE:
         native = _native_plan(
-            inventory, STAT_NAMES.index(stat), allowed, warly
+            inventory, STAT_NAMES.index(stat), allowed, warly, dried
         )
         if native is not None:
             return native
 
-    points = _solve_frontier(inventory, warly)
+    points = _solve_frontier(inventory, warly, dried)
 
     feasible = [
         point
@@ -761,6 +861,8 @@ def describe_action(action):
         return f"cook {', '.join(source)} -> {target}"
     if kind == "roast":
         return f"roast {source} -> {target}"
+    if kind == "dry":
+        return f"dry {source} -> {target}"
     if kind == "eat":
         return f"eat {source}"
     return f"keep {source}"
@@ -782,6 +884,14 @@ def data_warnings():
         if cooked not in STATS:
             warnings.append(
                 f"cooked_table.txt: {raw!r} -> {cooked!r} has no stats in food.txt"
+            )
+
+    for raw, dried in DRIED.items():
+        if raw not in STATS:
+            warnings.append(f"dried_table.txt: {raw!r} has no stats in food.txt")
+        if dried not in STATS:
+            warnings.append(
+                f"dried_table.txt: {raw!r} -> {dried!r} has no stats in food.txt"
             )
 
     provided = set()

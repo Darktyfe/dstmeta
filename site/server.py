@@ -83,7 +83,7 @@ def action_dict(action):
     }
     if kind == "cook":
         result["ingredients"] = list(source)
-    elif kind == "roast":
+    elif kind in ("roast", "dry"):
         result["source"] = source
     return result
 
@@ -104,17 +104,22 @@ def calculate(payload):
     if stat not in STAT_KEYS:
         raise ValueError(f"stat must be one of {', '.join(STAT_KEYS)}")
     warly = bool(payload.get("warly", False))
+    # The site checkbox is "Ignore Dried variants" and defaults to on.
+    dried = not bool(payload.get("ignoreDried", True))
     losses = alg.normalize_losses(payload.get("losses"))
 
     ingredients, unknown = resolve_names(names)
+    if unknown:
+        raise ValueError(alg.unknown_food_message(unknown))
+
     total, actions = alg.find_best_plan(
-        ingredients, stat, warly, losses=losses
+        ingredients, stat, warly, losses=losses, dried=dried
     )
     totals = {key: float(value) for key, value in alg.plan_totals(actions).items()}
 
     dishes = []
     if len(ingredients) >= alg.SLOTS:
-        cooked = alg.cookable_dishes(ingredients, warly)
+        cooked = alg.cookable_dishes(ingredients, warly, dried)
         for dish, combinations in cooked.items():
             score = alg.get_food_stat(dish, stat)
             dishes.append(dish_dict(dish, combinations[0], score))
@@ -134,9 +139,9 @@ def calculate(payload):
 
     return {
         "ingredients": ingredients,
-        "unknown": unknown,
         "stat": stat,
         "warly": warly,
+        "dried": dried,
         "losses": losses,
         "engine": cpp_engine.engine_name(),
         "total": float(total),

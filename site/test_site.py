@@ -49,14 +49,44 @@ class SiteApiTest(unittest.TestCase):
         self.assertEqual(allowed["total"], 62.5)
         self.assertTrue(any(step["kind"] == "cook" for step in allowed["plan"]))
 
-    def test_unknown_ingredients_are_reported(self):
-        result = server.calculate(
-            {
-                "ingredients": "Meat\nMeat\nMystery Fruit\nIce",
-                "stat": "Hunger",
-            }
+    def test_unknown_ingredients_are_rejected(self):
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {
+                    "ingredients": "Meat\nMeat\nMystery Fruit\nIce",
+                    "stat": "Hunger",
+                }
+            )
+        message = str(caught.exception)
+        self.assertIn("Mystery Fruit", message)
+        self.assertIn("is not a food", message)
+        self.assertIn("removed", message)
+
+    def test_tomato_is_rejected_with_a_hint(self):
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {
+                    "ingredients": "Tomato\nTomato\nTomato\nTomato",
+                    "stat": "Hunger",
+                }
+            )
+        self.assertEqual(
+            str(caught.exception),
+            "'Tomato' is not a food and should be removed from the ingredient list.",
         )
-        self.assertEqual(result["unknown"], ["Mystery Fruit"])
+
+    def test_multiple_unknown_ingredients_are_listed_once(self):
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {
+                    "ingredients": "Tomato\nMystery Fruit\nTomato\nMeat",
+                    "stat": "Hunger",
+                }
+            )
+        message = str(caught.exception)
+        self.assertIn("'Tomato'", message)
+        self.assertIn("'Mystery Fruit'", message)
+        self.assertIn("are not foods", message)
 
     def test_too_many_ingredients_is_rejected(self):
         payload = "\n".join(["Meat"] * (server.MAX_INGREDIENTS + 1))
@@ -66,6 +96,29 @@ class SiteApiTest(unittest.TestCase):
     def test_engine_is_reported(self):
         result = server.calculate({"ingredients": "Meat\nMeat\nMeat\nIce", "stat": "Hunger"})
         self.assertIn(result["engine"], ("C++", "Python"))
+
+    def test_dried_variants_are_ignored_by_default(self):
+        result = server.calculate(
+            {"ingredients": "Meat\nMeat\nMeat\nMeat", "stat": "Sanity"}
+        )
+        self.assertFalse(result["dried"])
+        self.assertEqual(result["total"], 5)
+        self.assertFalse(any(step["kind"] == "dry" for step in result["plan"]))
+
+    def test_dried_variants_can_be_enabled(self):
+        result = server.calculate(
+            {
+                "ingredients": "Meat\nMeat\nMeat\nMeat",
+                "stat": "Sanity",
+                "ignoreDried": False,
+            }
+        )
+        self.assertTrue(result["dried"])
+        self.assertEqual(result["total"], 60)
+        dry = [step for step in result["plan"] if step["kind"] == "dry"]
+        self.assertEqual(len(dry), 4)
+        self.assertTrue(all(step["source"] == "Meat" for step in dry))
+        self.assertTrue(all(step["food"] == "Jerky" for step in dry))
 
 
 if __name__ == "__main__":

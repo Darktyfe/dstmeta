@@ -15,8 +15,9 @@ import ctypes
 from pathlib import Path
 
 # Individual action kinds, mirroring the C++ Act kinds and the option order
-# in alg._individual_options: first keep, then eat, then roast.
-ACTION_KINDS = {"keep": 0, "eat": 1, "roast": 2}
+# in alg._individual_options: first keep, then eat, then roast, then dry.
+# The cook action uses kind 4, so every individual kind fits one 4-wide row.
+ACTION_KINDS = {"keep": 0, "eat": 1, "roast": 2, "dry": 3}
 
 _NATIVE_DIR = Path(__file__).resolve().parent.parent / "native"
 _LIBRARY_NAMES = ("engine.dll", "libengine.so", "libengine.dylib")
@@ -107,7 +108,7 @@ def solve(
     """Run one native search and return ``(total, totals, groups, individuals)``.
 
     ``groups`` is a list of ``(dish_id, t0, t1, t2, t3)`` cook groups and
-    ``individuals`` maps each type to ``(keep, eat, roast)`` item counts.
+    ``individuals`` maps each type to ``(keep, eat, roast, dry)`` item counts.
     Returns ``None`` when the native engine reports an error; callers then
     use the Python engine.  Return code -3 (nothing feasible) is reported as
     ``("keep",)`` style output by the caller, like ``alg.find_best_plan``.
@@ -136,7 +137,7 @@ def solve(
     totals_arr = (ctypes.c_double * 3)()
     group_count = ctypes.c_int32()
     groups_arr = (ctypes.c_int32 * (groups_cap * 5))()
-    individuals_arr = (ctypes.c_int8 * (types * 3))()
+    individuals_arr = (ctypes.c_int8 * (types * 4))()
 
     code = _library(
         types,

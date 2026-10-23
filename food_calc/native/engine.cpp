@@ -33,14 +33,15 @@
 namespace {
 
 constexpr double kEps = 1e-9;
+constexpr uint8_t kCookKind = 4;
 constexpr int32_t kMaxTypes = 48;
 constexpr int32_t kMaxPerType = 255;
 constexpr int64_t kMaxInstances = 1024;
 
 using Vec = std::array<double, 3>;
 
-// Action kinds: 0 keep, 1 eat, 2 roast, 3 cook.  Mirrors ("keep"/"eat"/
-// "roast"/"cook", ...) tuples on the Python side.
+// Action kinds: 0 keep, 1 eat, 2 roast, 3 dry, 4 cook.  Individual kinds are
+// handed in by cpp_engine.ACTION_KINDS; the cook kind is fixed here.
 struct Act {
     uint8_t kind;
     uint8_t type;       // item type for individual actions
@@ -137,7 +138,7 @@ struct Task {
 inline NodeRef push_node(Task& task, const Point& point, const Act& act) {
     task.nodes.push_back(
         Node{act, point.tail, point.len + 1,
-             point.pot_cooked + (act.kind == 3 ? act.cooked : 0)});
+             point.pot_cooked + (act.kind == kCookKind ? act.cooked : 0)});
     return &task.nodes.back();
 }
 
@@ -297,7 +298,7 @@ const Points& solve(Task& task, const int32_t* counts) {
                         const Points& sub = solve(task, sub_counts.data());
 
                         Act act{};
-                        act.kind = 3;
+                        act.kind = kCookKind;
                         act.g[0] = static_cast<uint8_t>(first);
                         act.g[1] = static_cast<uint8_t>(a);
                         act.g[2] = static_cast<uint8_t>(b);
@@ -373,7 +374,7 @@ EXPORT int32_t dstmeta_solve(
     int32_t* out_group_count,
     int32_t* out_groups,          // groups_cap * 5 (dish_id, t0, t1, t2, t3)
     int32_t groups_cap,
-    int8_t* out_ind)              // types * 3 (keep, eat, roast counts)
+    int8_t* out_ind)              // types * 4 (keep, eat, roast, dry counts)
 {
     if (types <= 0 || types > kMaxTypes || type_counts == nullptr ||
         ind_off == nullptr || ind_stats == nullptr || ind_kind == nullptr ||
@@ -471,7 +472,7 @@ EXPORT int32_t dstmeta_solve(
 
     int32_t groups = 0;
     for (const Act& act : actions) {
-        if (act.kind != 3) {
+        if (act.kind != kCookKind) {
             continue;
         }
         if (groups >= groups_cap) {
@@ -486,10 +487,10 @@ EXPORT int32_t dstmeta_solve(
     }
     *out_group_count = groups;
 
-    std::memset(out_ind, 0, static_cast<size_t>(types) * 3);
+    std::memset(out_ind, 0, static_cast<size_t>(types) * 4);
     for (const Act& act : actions) {
-        if (act.kind != 3) {
-            out_ind[static_cast<size_t>(act.type) * 3 + act.kind] += 1;
+        if (act.kind != kCookKind) {
+            out_ind[static_cast<size_t>(act.type) * 4 + act.kind] += 1;
         }
     }
 
