@@ -5,9 +5,11 @@ line.  Blank lines are ignored, so trailing newlines and spacing are harmless.
 
 Record formats
 --------------
-food.txt     ``Name: hunger, sanity, health``
-value.txt    ``Ingredient: *Tag - weight, *Tag - weight, ...``
-recipes.txt  ``Dish; conditions; excludes; priority``
+food.txt         ``Name: hunger, sanity, health``
+value.txt        ``Ingredient: *Tag - weight, *Tag - weight, ...``
+recipes.txt      ``Dish; conditions; excludes; priority``
+cooked_table.txt ``Raw: Cooked``
+dried_table.txt  ``Raw: Dried``
 
 Conditions are ``<op> <number> <tag>`` separated by ``,`` (``>= 1.0 *Meat``).
 Excludes are bare tags separated by ``,`` (``*Meat, Twigs``).  An empty field
@@ -60,7 +62,7 @@ def parse_value_line(line):
 
 
 def parse_cooked_line(line):
-    """Parse ``Raw: Cooked`` into a ``(raw, cooked)`` pair."""
+    """Parse ``Raw: Result`` into a ``(raw, result)`` pair."""
     raw, cooked = line.split(": ", 1)
     return raw.strip(), cooked.strip()
 
@@ -73,6 +75,7 @@ def file_to_list(file_name):
     * ``recipes.txt``      -> ``[(name, conditions, excludes, priority)]``
     * ``warly_recipes.txt``-> ``[(name, conditions, excludes, priority)]``
     * ``cooked_table.txt`` -> ``{raw: cooked}``
+    * ``dried_table.txt``  -> ``{raw: dried}``
     """
     parsers = {
         "food.txt": (parse_food_line, dict),
@@ -80,6 +83,7 @@ def file_to_list(file_name):
         "recipes.txt": (parse_recipe_line, list),
         "warly_recipes.txt": (parse_recipe_line, list),
         "cooked_table.txt": (parse_cooked_line, dict),
+        "dried_table.txt": (parse_cooked_line, dict),
     }
     try:
         parser, container = parsers[file_name]

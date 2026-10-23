@@ -33,6 +33,7 @@ Pepper: Roasted Pepper
 Pomegranate: Sliced Pomegranate
 Potato: Roasted Potato
 Pumpkin: Hot Pumpkin
+Raw Fish: Fish Steak
 Red Cap: Cooked Red Cap
 Ripe Stone Fruit: Cooked Stone Fruit
 Seeds: Toasted Seeds

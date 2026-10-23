@@ -218,6 +218,100 @@ class CookingTest(unittest.TestCase):
         self.assertEqual(alg.crockpot(ingredients, warly=True), "Grim Galette")
 
 
+class DryingTest(unittest.TestCase):
+    def test_dried_variant_lookup(self):
+        self.assertEqual(alg.get_dried_variant("Meat"), "Jerky")
+        self.assertEqual(alg.get_dried_variant("Raw Fish"), "Fishy Jerky")
+        self.assertIsNone(alg.get_dried_variant("Jerky"))
+
+    def test_drying_is_opt_in(self):
+        # Meat has no sanity raw, and Meaty Stew only gives 5; four Jerky give 60.
+        total, actions = alg.find_best_plan(["Meat"] * 4, "Sanity")
+        self.assertEqual(total, 5)
+
+        total, actions = alg.find_best_plan(["Meat"] * 4, "Sanity", dried=True)
+        self.assertEqual(total, 60)
+        self.assertEqual([action[0] for action in actions], ["dry"] * 4)
+        self.assertTrue(all(action[2] == "Jerky" for action in actions))
+        self.assertEqual(alg.plan_totals(actions), {"Hunger": 100, "Sanity": 60, "Health": 80})
+
+    def test_dried_fish_variants(self):
+        total, actions = alg.find_best_plan(["Raw Fish"] * 4, "Sanity", dried=True)
+        self.assertEqual(total, 60)
+        self.assertTrue(all(action[0] == "dry" for action in actions))
+        self.assertTrue(all(action[2] == "Fishy Jerky" for action in actions))
+
+        total, actions = alg.find_best_plan(
+            ["Fish Morsel"] * 4, "Sanity", dried=True
+        )
+        self.assertEqual(total, 80)
+        self.assertTrue(all(action[2] == "Small Fishy Jerky" for action in actions))
+
+    def test_dried_kelp_boosts_sanity(self):
+        total, actions = alg.find_best_plan(
+            ["Kelp Fronds"] * 4, "Sanity", dried=True
+        )
+        self.assertEqual(total, 40)
+        self.assertTrue(all(action[2] == "Dried Kelp Fronds" for action in actions))
+
+    def test_drying_a_harmful_item_is_skipped(self):
+        # Monster Jerky is less harmful than raw Monster Meat but still negative,
+        # so keeping it is better than either.
+        total, actions = alg.find_best_plan(
+            ["Monster Meat"] * 4, "Sanity", dried=True
+        )
+        self.assertEqual(total, 0)
+        self.assertTrue(all(action[0] == "keep" for action in actions))
+
+    def test_dried_food_stats(self):
+        self.assertEqual(alg.get_food_stats("Jerky"), (25.0, 15.0, 20.0))
+        self.assertEqual(alg.get_food_stats("Small Jerky"), (12.5, 10.0, 8.0))
+        self.assertEqual(alg.get_food_stats("Fishy Jerky"), (25.0, 15.0, 30.0))
+        self.assertEqual(
+            alg.get_food_stats("Small Fishy Jerky"), (12.5, 20.0, 15.0)
+        )
+        self.assertEqual(alg.get_food_stats("Raw Fish"), (25.0, 0.0, 8.0))
+
+    def test_dried_pot_still_uses_raw_meat(self):
+        dishes = alg.cookable_dishes(["Meat"] * 4, dried=True)
+        self.assertEqual(dishes["Meaty Stew"][0], ("Meat",) * 4)
+
+        total, actions = alg.find_best_plan(["Meat"] * 4, "Hunger", dried=True)
+        self.assertEqual(total, 150)
+        self.assertEqual(actions[0][0], "cook")
+        self.assertEqual(sorted(actions[0][1]), ["Meat"] * 4)
+
+    def test_pot_equivalent_variants_are_not_enumerated(self):
+        # Drying does not change crockpot values, so Jerky is not tried in the pot.
+        self.assertEqual(alg._pot_signature("Meat"), alg._pot_signature("Jerky"))
+        self.assertEqual(alg._variant_options("Meat", True), ("Meat",))
+        self.assertEqual(alg._variant_options("Monster Meat", True), ("Monster Meat",))
+
+        # A cooked form that really is different is still kept.
+        self.assertNotEqual(alg._pot_signature("Corn"), alg._pot_signature("Popcorn"))
+        self.assertEqual(alg._variant_options("Corn"), ("Corn", "Popcorn"))
+
+        # Unreferenced name tags do not matter, but a name a recipe uses does.
+        self.assertEqual(alg._variant_options("Dead Wobster"), ("Dead Wobster",))
+        self.assertIn("Charred Nostrils", alg._variant_options("Naked Nostrils"))
+
+        # Dried forms that really change a recipe-relevant tag stay available.
+        self.assertNotIn("Dried Kelp Fronds", alg._variant_options("Kelp Fronds"))
+        self.assertIn(
+            "Dried Kelp Fronds", alg._variant_options("Kelp Fronds", True)
+        )
+        self.assertIn("Small Fishy Jerky", alg._variant_options("Eel", True))
+
+    def test_best_item_action_and_description(self):
+        self.assertEqual(
+            alg.best_item_action("Meat", "Sanity", dried=True),
+            ("dry", "Meat", "Jerky"),
+        )
+        self.assertEqual(
+            alg.describe_action(("dry", "Meat", "Jerky")), "dry Meat -> Jerky"
+        )
+
+
 class LookupTest(unittest.TestCase):
     def test_stats_are_tuples(self):
         self.assertEqual(alg.get_food_stats("Meatballs"), (62.5, 5.0, 3.0))
@@ -235,6 +329,18 @@ class LookupTest(unittest.TestCase):
         self.assertEqual(alg.resolve_food_name("roasted potato"), "Roasted Potato")
         self.assertIsNone(alg.resolve_food_name("Unobtainium"))
 
+    def test_unknown_food_message(self):
+        self.assertIsNone(alg.resolve_food_name("Tomato"))
+        self.assertEqual(
+            alg.unknown_food_message(["Tomato"]),
+            "'Tomato' is not a food and should be removed from the ingredient list.",
+        )
+        self.assertEqual(
+            alg.unknown_food_message(["Tomato", "Tomato", "Mystery Fruit"]),
+            "'Tomato', 'Mystery Fruit' are not foods and should be removed "
+            "from the ingredient list.",
+        )
+
     def test_jelly_salad_fields(self):
         rows = [row for row in alg.RECIPES if row[0] == "Jelly Salad"]
         self.assertEqual(len(rows), 1)
@@ -242,6 +348,91 @@ class LookupTest(unittest.TestCase):
         self.assertIn("*Sweetener", conditions)
         self.assertEqual(excludes, "")
         self.assertEqual(priority, 50)
+
+
+class NativeParityTest(unittest.TestCase):
+    """The compiled engine must produce the same plans as the Python engine."""
+
+    CASES = [
+        ["Meat", "Meat", "Meat", "Ice"],
+        ["Meat"] * 8,
+        ["Monster Meat", "Monster Meat", "Ice", "Ice"],
+        ["Carrot", "Carrot", "Corn", "Corn", "Meat", "Twigs"],
+        ["Fish Morsel"] * 6 + ["Twigs"] * 4,
+        ["Berries", "Berries", "Berries", "Butter", "Honey", "Ice",
+         "Meat", "Meat", "Monster Meat", "Twigs", "Twigs", "Twigs"],
+    ]
+
+    def _run_plan(self, ingredients, **kwargs):
+        import cpp_engine
+
+        if not cpp_engine.available():
+            self.skipTest("native engine not available")
+
+        alg._USE_NATIVE = False
+        try:
+            python_plan = alg.find_best_plan(ingredients, **kwargs)
+        finally:
+            alg._USE_NATIVE = True
+        native_plan = alg.find_best_plan(ingredients, **kwargs)
+        return python_plan, native_plan
+
+    @staticmethod
+    def _cook_groups(actions):
+        return sorted((action[2], sorted(action[1]))
+                      for action in actions if action[0] == "cook")
+
+    def test_hunger_plans_match(self):
+        for ingredients in self.CASES:
+            with self.subTest(inventory=ingredients):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(ingredients)
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
+                self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+
+    def test_warly_and_losses_match(self):
+        ingredients = ["Monster Meat", "Monster Meat", "Ice", "Ice"]
+        for losses in (None, {"Hunger": 0, "Sanity": 20, "Health": 20}):
+            with self.subTest(losses=losses):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(
+                    ingredients, warly=True, losses=losses
+                )
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
+                self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+
+    def test_other_stats_match(self):
+        for ingredients, stat in (
+            (["Carrot"] * 4, "Health"),
+            (["Corn"] * 4, "Hunger"),
+            (["Meat"] * 4 + ["Ice"] * 4, "Sanity"),
+        ):
+            with self.subTest(inventory=ingredients, stat=stat):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(ingredients, stat=stat)
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
+                self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+
+    def test_dried_plans_match(self):
+        for ingredients, stat in (
+            (["Meat"] * 4, "Sanity"),
+            (["Meat"] * 8, "Health"),
+            (["Raw Fish"] * 4, "Sanity"),
+            (["Fish Morsel"] * 4, "Sanity"),
+            (["Kelp Fronds", "Meat", "Morsel", "Raw Fish"], "Health"),
+            (["Carrot", "Carrot", "Meat", "Meat"], "Health"),
+        ):
+            with self.subTest(inventory=ingredients, stat=stat):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(
+                    ingredients, stat=stat, dried=True
+                )
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
+                self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+                self.assertEqual(
+                    sorted(action[0] for action in cpp_actions),
+                    sorted(action[0] for action in py_actions),
+                )
 
 
 if __name__ == "__main__":

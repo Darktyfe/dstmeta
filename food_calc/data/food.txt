@@ -36,6 +36,9 @@ Fish: 12.5, 0, 1
 Cooked Fish: 12.5, 0, 1
 Fish Morsel: 12.5, 0, 1
 Cooked Fish Morsel: 12.5, 0, 1
+Raw Fish: 25, 0, 8
+Fish Steak: 25, 0, 8
+Fishy Jerky: 25, 15, 30
 Forget-Me-Lots: 0, 1, 0
 Frog Legs: 12.5, -10, 0
 Cooked Frog Legs: 12.5, 0, 1
@@ -75,6 +78,7 @@ Cooked Moon Shroom: -12.5, -10, 0
 Moon Moth Wings: 9.375, 15, 8
 Morsel: 12.5, -10, 0
 Cooked Morsel: 12.5, -10, 0
+Small Fishy Jerky: 12.5, 20, 15
 Small Jerky: 12.5, 10, 8
 Blue Cap: 12.5, -15, 20
 Cooked Blue Cap: 0, 10, -3

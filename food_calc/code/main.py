@@ -4,6 +4,7 @@ Examples
 --------
 ``py food_calc/code/main.py Meat Berries Berries Berries``
 ``py food_calc/code/main.py --stat Sanity Ice Butter Honey Berries``
+``py food_calc/code/main.py --dried --stat Sanity Meat Meat Meat Meat``
 ``py food_calc/code/main.py --check``
 
 Without ingredients the program asks for them interactively.
@@ -95,6 +96,11 @@ def main(argv=None):
         help="include Warly's Portable Crock Pot exclusive recipes",
     )
     parser.add_argument(
+        "--dried",
+        action="store_true",
+        help="use drying-rack variants (Jerky, dried kelp, ...)",
+    )
+    parser.add_argument(
         "--loss-hunger",
         type=non_negative,
         default=0.0,
@@ -126,19 +132,20 @@ def main(argv=None):
         return run_check()
 
     ingredients = args.ingredients or get_user_food()
-    if not ingredients:
-        print("No ingredients given.", file=sys.stderr)
+    ingredients, unknown = resolve_names(ingredients)
+    if unknown:
+        print(f"error: {alg.unknown_food_message(unknown)}", file=sys.stderr)
         return 1
 
-    ingredients, unknown = resolve_names(ingredients)
-    for name in unknown:
+    if len(ingredients) < alg.SLOTS:
         print(
-            f"warning: {name!r} is not in the data files; "
-            "it is used as a plain ingredient",
+            f"Need at least {alg.SLOTS} ingredients to fill the crockpot, "
+            f"got {len(ingredients)}.",
             file=sys.stderr,
         )
+        return 1
 
-    dishes = alg.cookable_dishes(ingredients, args.warly)
+    dishes = alg.cookable_dishes(ingredients, args.warly, args.dried)
     if not dishes:
         print("Nothing can be cooked from these ingredients.")
     else:
@@ -155,7 +162,7 @@ def main(argv=None):
                 f" {len(dishes[dish])} combination(s)]"
             )
 
-    best = alg.best_single_dish(ingredients, args.stat, args.warly)
+    best = alg.best_single_dish(ingredients, args.stat, args.warly, args.dried)
     if best is not None:
         score, dish, combo = best
         print()
@@ -173,6 +180,7 @@ def main(argv=None):
             "Sanity": args.loss_sanity,
             "Health": args.loss_health,
         },
+        dried=args.dried,
     )
     totals = alg.plan_totals(actions)
     print()

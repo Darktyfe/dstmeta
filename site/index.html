@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DSTMeta — Crockpot Planner</title>
-  <meta name="description" content="Plan the best use of your Don't Starve Together food: crockpot dishes, campfire roasts, and raw snacks.">
+  <meta name="description" content="Plan the best use of your Don't Starve Together food: crockpot dishes, campfire roasts, drying rack foods, and raw snacks.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🍲</text></svg>">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -28,7 +28,8 @@
       <h1>Make every ingredient count.</h1>
       <p class="hero-text">
         Tell us what is in your chest. We will find the best mix of crockpot
-        dishes, campfire roasts, and raw snacks for the stat you care about.
+        dishes, campfire roasts, drying rack foods, and raw snacks for the stat
+        you care about.
       </p>
     </section>
 
@@ -43,7 +44,7 @@
         <textarea id="ingredients" name="ingredients" spellcheck="false"
           placeholder="Meat&#10;Meat&#10;Meat&#10;Ice&#10;Meat"></textarea>
         <div class="ingredient-hint">
-          <span>One per line, up to 18. Duplicates matter.</span>
+          <span>One per line, up to 20. Duplicates matter.</span>
           <button type="button" id="sample" class="link-button">Load example</button>
         </div>
       </section>
@@ -69,6 +70,15 @@
             <span class="switch-sub">Portable Crock Pot exclusives</span>
           </span>
           <input type="checkbox" id="warly" name="warly">
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+
+        <label class="switch-row">
+          <span>
+            <span class="switch-title">Ignore Dried variants</span>
+            <span class="switch-sub">Default: on &middot; skip Jerky and dried kelp</span>
+          </span>
+          <input type="checkbox" id="ignore-dried" name="ignore-dried" checked>
           <span class="switch" aria-hidden="true"></span>
         </label>
 
@@ -116,7 +126,6 @@
           <div id="total-chips" class="chips"></div>
           <p id="loss-summary" class="loss-line"></p>
         </div>
-        <p id="unknown" class="warning" hidden></p>
       </section>
 
       <div class="result-grid">
@@ -162,8 +171,9 @@
       <div>
         <h2>What gets considered</h2>
         <p>
-          Eating raw, roasting first, keeping an item, or cooking four items in
-          the pot. Plans are checked as a whole, not dish by dish.
+          Eating raw, roasting first, drying on a rack (unless ignored), keeping
+          an item, or cooking four items in the pot. Plans are checked as a
+          whole, not dish by dish.
         </p>
       </div>
     </section>
