@@ -59,8 +59,9 @@ committed under `site/icons/`. `GET /api/foods` returns the ordered list:
 
 To refresh icons after changing the food data, run
 `py tools\fetch_food_icons.py` (it needs Pillow). Most icons come from the
-Fandom wiki; the few items without an item picture there (Heat Gland, Cooked
-Heat Gland, Dark Petals) are fetched from wiki.gg.
+Fandom wiki; the handful where it has no picture or the wrong one (Heat Gland,
+Cooked Heat Gland, Wobster, the fishy jerkies, Dark Petals and the dried
+flowers and foliage) are fetched from wiki.gg via `DIRECT_ICONS`.
 
 ### Languages
 

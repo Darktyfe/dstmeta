@@ -42,27 +42,29 @@ BATCH = 40
 # The wiki does not always use the in-game spelling for the icon file.
 WIKI_ALIASES = {
     "Crop Seeds": "Crop Seeds Animated",
-    "Dried Fire Nettle Frond": "Fire Nettle Fronds",
-    "Dried Foliage": "Foliage",
-    "Dried Forget-Me-Lots": "Forget-Me-Lots",
-    "Dried Lune Tree Blossom": "Lune Tree Blossom",
-    "Dried Petals": "Petals",
-    "Dried Succulent": "Succulent",
-    "Dried Tillweed": "Tillweed",
-    "Fishy Jerky": "Jerky",
     "Roasted Garlic": "Roast Garlic",
     "Roasted Onion": "Roast Onion",
     "Roasted Toma Root": "Roast Toma Root",
-    "Small Fishy Jerky": "Small Jerky",
 }
 
-# Items the Fandom wiki has no item icon for.  wiki.gg keeps the dropped-item
-# pictures, so fetch those directly instead of drawing a placeholder.
+# Icons taken straight from wiki.gg.  Either the Fandom wiki has no picture for
+# the item, or its picture is the wrong one (Small Fishy Jerky vs Small Jerky,
+# for example), so these URLs win over the Fandom lookup.
 DIRECT_ICONS = {
     "Cooked Heat Gland": "https://dontstarve.wiki.gg/images/Cooked_Heat_Gland.png",
     "Dark Petals": "https://dontstarve.wiki.gg/images/Dark_Petals.png",
-    "Dried Dark Petals": "https://dontstarve.wiki.gg/images/Dark_Petals.png",
+    "Dried Dark Petals": "https://dontstarve.wiki.gg/images/Dried_Dark_Petals.png",
+    "Dried Fire Nettle Frond": "https://dontstarve.wiki.gg/images/Dried_Fire_Nettle_Frond.png",
+    "Dried Foliage": "https://dontstarve.wiki.gg/images/Dried_Foliage.png",
+    "Dried Forget-Me-Lots": "https://dontstarve.wiki.gg/images/Dried_Forget-Me-Lots.png",
+    "Dried Lune Tree Blossom": "https://dontstarve.wiki.gg/images/Dried_Lune_Tree_Blossom.png",
+    "Dried Petals": "https://dontstarve.wiki.gg/images/Dried_Petals.png",
+    "Dried Succulent": "https://dontstarve.wiki.gg/images/Dried_Succulent.png",
+    "Dried Tillweed": "https://dontstarve.wiki.gg/images/Dried_Tillweed.png",
+    "Fishy Jerky": "https://dontstarve.wiki.gg/images/Fishy_Jerky.png",
     "Heat Gland": "https://dontstarve.wiki.gg/images/Heat_Gland_Dropped.png",
+    "Small Fishy Jerky": "https://dontstarve.wiki.gg/images/Small_Fishy_Jerky.png",
+    "Wobster": "https://dontstarve.wiki.gg/images/Wobster_%28DST%29.png",
 }
 
 
