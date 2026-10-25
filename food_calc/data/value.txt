@@ -35,6 +35,7 @@ Cooked Green Cap: *Vegetable - 0.5
 Cooked Heat Gland: *Meat - 0.5, *Monster Meat - 0.5
 Cooked Kelp Fronds: *Vegetable - 0.5
 Cooked Leafy Meat: *Meat - 1
+Cooked Mandrake: *Vegetable - 1, *Magic - 1
 Cooked Meat: *Meat - 1
 Cooked Moon Shroom: *Vegetable - 0.5
 Cooked Monster Meat: *Meat - 1, *Monster Meat - 1

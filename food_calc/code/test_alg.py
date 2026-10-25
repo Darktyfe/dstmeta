@@ -82,11 +82,31 @@ class CrockpotTest(unittest.TestCase):
             alg.crockpot(("Meatballs", "Ice", "Twigs", "Meat"))
         )
 
-    def test_cooked_mandrake_is_not_a_pot_ingredient(self):
-        # Mandrake Soup needs a raw Mandrake; roasting it first is one-way.
-        self.assertIsNone(
-            alg.crockpot(("Cooked Mandrake", "Ice", "Twigs", "Meat"))
+    def test_cooked_mandrake_is_a_pot_ingredient(self):
+        # The game registers mandrake_cooked as a cooking ingredient, so it can
+        # still be used as a vegetable even though it cannot make Mandrake Soup.
+        self.assertEqual(
+            alg.crockpot(("Cooked Mandrake", "Ice", "Ice", "Ice")),
+            "Ratatouille",
         )
+        self.assertIn("Cooked Mandrake", alg._variant_options("Mandrake"))
+
+    def test_cooked_mandrake_does_not_make_mandrake_soup(self):
+        # Mandrake Soup requires the raw prefab; the cooked form is a one-way
+        # roasting result and only counts as a vegetable/magic ingredient.
+        self.assertEqual(
+            alg.crockpot(("Mandrake", "Ice", "Twigs", "Meat")),
+            "Mandrake Soup",
+        )
+        self.assertEqual(
+            alg.crockpot(("Cooked Mandrake", "Ice", "Twigs", "Meat")),
+            "Kabobs",
+        )
+
+    def test_cooked_mandrake_keeps_its_cooking_tags(self):
+        tags = alg.ingredient_tags("Cooked Mandrake")
+        self.assertEqual(tags["vegetable"], 1.0)
+        self.assertEqual(tags["magic"], 1.0)
 
     def test_turkey_dinner_requires_raw_drumsticks(self):
         # Wiki: "Using Fried Drumsticks may result in Meatballs, as the recipe
