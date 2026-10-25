@@ -291,6 +291,7 @@ class Handler(BaseHTTPRequestHandler):
                 HTTPStatus.OK,
                 {
                     "foods": alg.known_foods(),
+                    "categories": alg.food_categories(),
                     "stats": list(STAT_KEYS),
                     "maxIngredients": MAX_INGREDIENTS,
                     "maxIngredientTypes": MAX_INGREDIENT_TYPES,

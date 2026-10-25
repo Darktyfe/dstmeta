@@ -4,6 +4,7 @@ Run with ``py site/test_site.py``.
 """
 
 import json
+import re
 import sys
 import threading
 import unittest
@@ -285,6 +286,66 @@ class SiteApiTest(unittest.TestCase):
         self.assertIn("Слишком много ингредиентов", str(caught.exception))
 
 
+class PickerTest(unittest.TestCase):
+    """The ingredient picker groups and its icon set."""
+
+    GROUPS = {
+        "Meat",
+        "Fish",
+        "Vegetable",
+        "Fruit",
+        "Egg",
+        "Dairy",
+        "Sweetener",
+        "Seed",
+        "Frozen",
+        "Decoration",
+        "Dish",
+        "Other",
+    }
+
+    @staticmethod
+    def slug(name):
+        return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+    def test_every_food_has_a_known_group(self):
+        categories = server.alg.food_categories()
+        self.assertEqual(set(categories), set(server.alg.known_foods()))
+        self.assertLessEqual(set(categories.values()), self.GROUPS)
+
+    def test_groups_follow_cooking_tags(self):
+        categories = server.alg.food_categories()
+        self.assertEqual(categories["Meat"], "Meat")
+        self.assertEqual(categories["Fish"], "Fish")
+        self.assertEqual(categories["Carrot"], "Vegetable")
+        self.assertEqual(categories["Berries"], "Fruit")
+        self.assertEqual(categories["Honey"], "Sweetener")
+        self.assertEqual(categories["Ice"], "Frozen")
+        self.assertEqual(categories["Birchnut"], "Seed")
+
+    def test_prepared_dishes_are_their_own_group(self):
+        categories = server.alg.food_categories()
+        for dish in ("Meatballs", "Meaty Stew", "Butter Muffin", "Trail Mix"):
+            self.assertEqual(categories[dish], "Dish")
+
+    def test_group_names_have_no_duplicate_slugs(self):
+        slugs = {}
+        for name in server.alg.known_foods():
+            key = self.slug(name)
+            self.assertNotIn(key, slugs, f"{name} collides with {slugs.get(key)}")
+            slugs[key] = name
+
+    def test_every_food_has_an_icon_file(self):
+        icons = server.ROOT / "icons"
+        self.assertTrue(icons.is_dir(), "site/icons is missing")
+        missing = [
+            name
+            for name in server.alg.known_foods()
+            if not (icons / f"{self.slug(name)}.png").is_file()
+        ]
+        self.assertEqual(missing, [])
+
+
 class HttpEndpointTest(unittest.TestCase):
     """The HTTP surface the browser and simple health probes use."""
 
@@ -321,6 +382,23 @@ class HttpEndpointTest(unittest.TestCase):
             self.assertEqual(response.status, 200)
             names = json.load(response)
         self.assertEqual(names["Fish"], "Рыба")
+
+    def test_foods_endpoint_returns_picker_categories(self):
+        with urllib.request.urlopen(self.base + "/api/foods", timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            payload = json.load(response)
+        foods = payload["foods"]
+        categories = payload["categories"]
+        self.assertEqual(set(categories), set(foods))
+        self.assertEqual(categories["Meat"], "Meat")
+        self.assertEqual(categories["Ice"], "Frozen")
+        self.assertEqual(payload["maxIngredients"], server.MAX_INGREDIENTS)
+        self.assertEqual(payload["maxIngredientTypes"], server.MAX_INGREDIENT_TYPES)
+
+    def test_icons_are_served(self):
+        with urllib.request.urlopen(self.base + "/icons/meat.png", timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers.get_content_type(), "image/png")
 
     def test_calculate_endpoint_localizes_errors(self):
         body = json.dumps(

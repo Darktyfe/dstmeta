@@ -41,19 +41,36 @@
         <div class="card-head">
           <span class="step-badge">1</span>
           <h2 data-i18n="ingredientsTitle">Your ingredients</h2>
-          <span id="item-count" class="count">0 items</span>
+          <span id="item-count" class="count" aria-live="polite">0 items</span>
         </div>
-        <label class="sr-only" for="ingredients" data-i18n="ingredientsLabel">Ingredients, one per line</label>
-        <textarea id="ingredients" name="ingredients" spellcheck="false"
-          data-i18n-placeholder="ingredientsPlaceholder"
-          placeholder="Meat&#10;Meat&#10;Meat&#10;Ice&#10;Meat"></textarea>
+
+        <div class="picker-toolbar">
+          <label class="picker-search">
+            <span class="picker-search-icon" aria-hidden="true">⌕</span>
+            <span class="sr-only" data-i18n="pickerSearchLabel">Search ingredients</span>
+            <input type="search" id="ingredient-search" autocomplete="off" spellcheck="false"
+              data-i18n-placeholder="pickerSearchPlaceholder"
+              placeholder="Search ingredients…">
+          </label>
+          <button type="button" id="clear-picker" class="link-button" data-i18n="clearAll">Clear all</button>
+        </div>
+
+        <div id="ingredient-picker" class="ingredient-picker" role="group"
+          data-i18n-aria-label="pickerLabel" aria-label="Ingredient picker">
+          <p class="picker-loading" data-i18n="pickerLoading">Loading ingredients…</p>
+        </div>
+        <p id="picker-empty" class="picker-empty" data-i18n="pickerEmpty" hidden>
+          No ingredients match your search.
+        </p>
+        <p id="picker-message" class="picker-message" role="status" hidden></p>
+
         <div class="ingredient-hint">
           <span>
-            <span data-i18n="hintLead">One per line, up to</span>
+            <span data-i18n="hintLead">Click an icon to add, up to</span>
             <span id="max-ingredients">100</span>
             <span data-i18n="hintMid">items and</span>
             <span id="max-types">24</span>
-            <span data-i18n="hintTail">kinds. Duplicates matter.</span>
+            <span data-i18n="hintTail">kinds. Click the number on a tile to remove one.</span>
           </span>
           <button type="button" id="sample" class="link-button" data-i18n="loadExample">Load example</button>
         </div>

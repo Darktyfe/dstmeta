@@ -445,6 +445,49 @@ def known_foods():
     return sorted(set(STATS) | set(VALUES))
 
 
+# Picker groups, in the order the site shows them.  The first matching tag
+# wins, so a fish that also counts as meat lands under Fish.
+_PICKER_TAGS = (
+    ("fish", "Fish"),
+    ("meat", "Meat"),
+    ("egg", "Egg"),
+    ("dairy", "Dairy"),
+    ("sweetener", "Sweetener"),
+    ("seed", "Seed"),
+    ("fruit", "Fruit"),
+    ("vegetable", "Vegetable"),
+    ("frozen", "Frozen"),
+    ("decoration", "Decoration"),
+)
+
+
+def food_category(name):
+    """Return the ingredient-picker group for one food.
+
+    Prepared dishes are their own group.  Everything else is grouped by the
+    strongest cooking tag from ``value.txt``; a few items that are not pot
+    ingredients fall back to ``"Other"``.
+    """
+    if name in _RECIPE_DISHES or name in _HAT_DISHES:
+        return "Dish"
+
+    tags = ingredient_tags(name)
+    for tag, group in _PICKER_TAGS:
+        if tags.get(tag, 0) > 0:
+            return group
+
+    lowered = name.lower()
+    if "seed" in lowered:
+        return "Seed"
+    return "Other"
+
+
+@lru_cache(maxsize=None)
+def food_categories():
+    """Return ``{food name: picker group}`` for every known food."""
+    return {name: food_category(name) for name in known_foods()}
+
+
 @lru_cache(maxsize=None)
 def _food_lookup():
     """Build a case- and plural-insensitive lookup of known food names."""

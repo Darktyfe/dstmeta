@@ -27,6 +27,34 @@ calculation; raise those limits with `--max-ingredients N` and `--max-types N`.
 The CLI has no caps. `GET /health` answers `{"status": "ok"}` for local
 monitors and extensions that probe the server.
 
+### Ingredient picker
+
+Instead of typing a list, click the food icons in the picker (the same idea as
+the Russian wiki's interactive crockpot). Each click adds one item, the count
+appears in the tile's lower-right corner, and clicking that number removes one.
+Right-clicking a tile also removes one, and `Clear all` empties the plan. The
+search box filters by English or Russian name, and `Load example` fills in the
+classic four-meat-and-ice plan.
+
+The icons are trimmed 64×64 PNGs downloaded from the Don't Starve wiki and
+committed under `site/icons/`. `GET /api/foods` returns the food list together
+with the picker group of every food:
+
+```json
+{
+  "foods": ["Berries", "Carrot", "Meat"],
+  "categories": {"Berries": "Fruit", "Carrot": "Vegetable", "Meat": "Meat"},
+  "maxIngredients": 100,
+  "maxIngredientTypes": 24
+}
+```
+
+Groups come from the cooking tags in `food_calc/data/value.txt` (`Meat`, `Fish`,
+`Vegetable`, `Fruit`, `Egg`, `Dairy`, `Sweetener`, `Seed`, `Frozen`,
+`Decoration`), with prepared dishes in their own `Dish` group and items that are
+not pot ingredients under `Other`. To add missing icons after changing the food
+data, run `py tools\fetch_food_icons.py` (it needs Pillow).
+
 ### Languages
 
 The header has an `EN` / `RU` switch. It remembers the choice in
@@ -206,11 +234,13 @@ site/
   app.js            form handling and result rendering
   i18n.js           English and Russian interface strings
   names_ru.json     English-to-Russian food names
+  icons/            64x64 ingredient icons for the picker
   server.py         local web server and JSON API
   test_site.py      tests for the website API
 tools/
   build_engine.py   compile food_calc/native/engine.cpp
   fetch_compiler.py download a portable MinGW-w64 g++ (Windows)
+  fetch_food_icons.py download the picker icons from the Don't Starve wiki
 ```
 
 ## Data format
