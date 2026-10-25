@@ -27,6 +27,42 @@ calculation; raise those limits with `--max-ingredients N` and `--max-types N`.
 The CLI has no caps. `GET /health` answers `{"status": "ok"}` for local
 monitors and extensions that probe the server.
 
+### Ingredient picker
+
+Instead of typing a list, click the food icons in the picker (the same idea as
+the Russian wiki's interactive crockpot). Each click adds one item, the count
+appears in the tile's lower-right corner, and clicking that number removes one.
+Right-clicking a tile also removes one, and `Clear all` empties the plan. The
+search box filters by English or Russian name, and `Load example` fills in the
+classic four-meat-and-ice plan.
+
+The picker offers only crockpot ingredients: foods with an entry in
+`food_calc/data/value.txt`. Prepared dishes, gears, wet goop and other trinkets
+that cannot be cooked, fried or dried stay out of the menu even though the CLI
+still knows them. The tiles follow the food-value order of the DST wiki
+(<https://dontstarve.wiki.gg/wiki/Food_Value/DST>): meat, monster meat, fish,
+fruit, vegetable, egg, sweetener, dairy, frozen, inedible, decoration, fat,
+magic and seed value, lightest first. That order lives in
+`food_calc/data/picker_order.txt`; an ingredient missing from that file is
+appended alphabetically instead of disappearing.
+
+The icons are trimmed 64×64 PNGs downloaded from the Don't Starve wiki and
+committed under `site/icons/`. `GET /api/foods` returns the ordered list:
+
+```json
+{
+  "foods": ["Barnacles", "Cooked Barnacles", "Morsel", "Cooked Morsel"],
+  "maxIngredients": 100,
+  "maxIngredientTypes": 24
+}
+```
+
+To refresh icons after changing the food data, run
+`py tools\fetch_food_icons.py` (it needs Pillow). Most icons come from the
+Fandom wiki; the handful where it has no picture or the wrong one (Heat Gland,
+Cooked Heat Gland, Wobster, the fishy jerkies, Dark Petals and the dried
+flowers and foliage) are fetched from wiki.gg via `DIRECT_ICONS`.
+
 ### Languages
 
 The header has an `EN` / `RU` switch. It remembers the choice in
@@ -200,17 +236,20 @@ food_calc/
     dried_table.txt   drying rack raw -> dried conversions
     over_time.txt     gradual part of a food's stats
     warly_recipes.txt Warly's Portable Crock Pot recipes
+    picker_order.txt  ingredient order used by the website picker
 site/
   index.html        calculator page
   styles.css        page theme
   app.js            form handling and result rendering
   i18n.js           English and Russian interface strings
   names_ru.json     English-to-Russian food names
+  icons/            64x64 ingredient icons for the picker
   server.py         local web server and JSON API
   test_site.py      tests for the website API
 tools/
   build_engine.py   compile food_calc/native/engine.cpp
   fetch_compiler.py download a portable MinGW-w64 g++ (Windows)
+  fetch_food_icons.py download the picker icons from the Don't Starve wiki
 ```
 
 ## Data format
