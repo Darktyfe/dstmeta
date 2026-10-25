@@ -445,47 +445,50 @@ def known_foods():
     return sorted(set(STATS) | set(VALUES))
 
 
-# Picker groups, in the order the site shows them.  The first matching tag
-# wins, so a fish that also counts as meat lands under Fish.
-_PICKER_TAGS = (
-    ("fish", "Fish"),
-    ("meat", "Meat"),
-    ("egg", "Egg"),
-    ("dairy", "Dairy"),
-    ("sweetener", "Sweetener"),
-    ("seed", "Seed"),
-    ("fruit", "Fruit"),
-    ("vegetable", "Vegetable"),
-    ("frozen", "Frozen"),
-    ("decoration", "Decoration"),
-)
+@lru_cache(maxsize=None)
+def _picker_order():
+    """Return the food names from ``data/picker_order.txt`` in order."""
+    try:
+        text = basic_func.read_file("picker_order.txt")
+    except OSError:
+        return ()
 
-
-def food_category(name):
-    """Return the ingredient-picker group for one food.
-
-    Prepared dishes are their own group.  Everything else is grouped by the
-    strongest cooking tag from ``value.txt``; a few items that are not pot
-    ingredients fall back to ``"Other"``.
-    """
-    if name in _RECIPE_DISHES or name in _HAT_DISHES:
-        return "Dish"
-
-    tags = ingredient_tags(name)
-    for tag, group in _PICKER_TAGS:
-        if tags.get(tag, 0) > 0:
-            return group
-
-    lowered = name.lower()
-    if "seed" in lowered:
-        return "Seed"
-    return "Other"
+    names = []
+    seen = set()
+    for line in text.splitlines():
+        name = line.split("#", 1)[0].strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        names.append(name)
+    return tuple(names)
 
 
 @lru_cache(maxsize=None)
-def food_categories():
-    """Return ``{food name: picker group}`` for every known food."""
-    return {name: food_category(name) for name in known_foods()}
+def picker_foods():
+    """Return the crockpot ingredients the site offers, in picker order.
+
+    Only foods with an entry in ``value.txt`` qualify: those are the items the
+    Crock Pot accepts.  Dishes and trinkets (gears, wet goop, petals, ...) are
+    left out even though the engine still knows them.
+
+    The order comes from ``data/picker_order.txt``, which follows the wiki's
+    food-value tables.  Any ingredient missing from that file is appended
+    alphabetically, so adding a food to ``value.txt`` never hides it.
+    """
+    known = set(known_foods())
+    dishes = _RECIPE_DISHES | _HAT_DISHES
+    ordered = [
+        name
+        for name in _picker_order()
+        if name in known and name in VALUES and name not in dishes
+    ]
+    listed = set(ordered)
+    return ordered + sorted(
+        name
+        for name in known
+        if name in VALUES and name not in listed and name not in dishes
+    )
 
 
 @lru_cache(maxsize=None)

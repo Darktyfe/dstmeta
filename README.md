@@ -36,24 +36,31 @@ Right-clicking a tile also removes one, and `Clear all` empties the plan. The
 search box filters by English or Russian name, and `Load example` fills in the
 classic four-meat-and-ice plan.
 
+The picker offers only crockpot ingredients: foods with an entry in
+`food_calc/data/value.txt`. Prepared dishes, gears, wet goop and other trinkets
+that cannot be cooked, fried or dried stay out of the menu even though the CLI
+still knows them. The tiles follow the food-value order of the DST wiki
+(<https://dontstarve.wiki.gg/wiki/Food_Value/DST>): meat, monster meat, fish,
+fruit, vegetable, egg, sweetener, dairy, frozen, inedible, decoration, fat,
+magic and seed value, lightest first. That order lives in
+`food_calc/data/picker_order.txt`; an ingredient missing from that file is
+appended alphabetically instead of disappearing.
+
 The icons are trimmed 64×64 PNGs downloaded from the Don't Starve wiki and
-committed under `site/icons/`. `GET /api/foods` returns the food list together
-with the picker group of every food:
+committed under `site/icons/`. `GET /api/foods` returns the ordered list:
 
 ```json
 {
-  "foods": ["Berries", "Carrot", "Meat"],
-  "categories": {"Berries": "Fruit", "Carrot": "Vegetable", "Meat": "Meat"},
+  "foods": ["Barnacles", "Cooked Barnacles", "Morsel", "Cooked Morsel"],
   "maxIngredients": 100,
   "maxIngredientTypes": 24
 }
 ```
 
-Groups come from the cooking tags in `food_calc/data/value.txt` (`Meat`, `Fish`,
-`Vegetable`, `Fruit`, `Egg`, `Dairy`, `Sweetener`, `Seed`, `Frozen`,
-`Decoration`), with prepared dishes in their own `Dish` group and items that are
-not pot ingredients under `Other`. To add missing icons after changing the food
-data, run `py tools\fetch_food_icons.py` (it needs Pillow).
+To refresh icons after changing the food data, run
+`py tools\fetch_food_icons.py` (it needs Pillow). Most icons come from the
+Fandom wiki; the few items without an item picture there (Heat Gland, Cooked
+Heat Gland, Dark Petals) are fetched from wiki.gg.
 
 ### Languages
 
@@ -228,6 +235,7 @@ food_calc/
     dried_table.txt   drying rack raw -> dried conversions
     over_time.txt     gradual part of a food's stats
     warly_recipes.txt Warly's Portable Crock Pot recipes
+    picker_order.txt  ingredient order used by the website picker
 site/
   index.html        calculator page
   styles.css        page theme

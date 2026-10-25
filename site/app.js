@@ -55,7 +55,6 @@
     data: null,
     errorKey: null,
     foods: [],
-    categories: {},
     counts: new Map(),
     tileRefs: new Map(),
     loaded: false,
@@ -79,10 +78,6 @@
   };
 
   const SAMPLE = ["Meat", "Meat", "Meat", "Ice", "Meat"];
-  const GROUP_ORDER = [
-    "Meat", "Fish", "Vegetable", "Fruit", "Egg", "Dairy", "Sweetener",
-    "Seed", "Frozen", "Decoration", "Other", "Dish",
-  ];
 
   let ruNames = null;
 
@@ -230,14 +225,13 @@
     const query = (els.search.value || "").trim().toLowerCase();
     let matches = 0;
     state.tileRefs.forEach((ref, name) => {
-      const haystack = `${name}\n${foodName(name)}`.toLowerCase();
+      // Match both the canonical English name and the Russian one, whatever
+      // language the interface is in.
+      const localised = (ruNames && ruNames[name]) || "";
+      const haystack = `${name}\n${localised}`.toLowerCase();
       const visible = !query || haystack.includes(query);
       ref.tile.hidden = !visible;
       if (visible) matches += 1;
-    });
-    $$(".picker-group", els.picker).forEach((group) => {
-      const visible = $$(".ingredient-tile", group).some((tile) => !tile.hidden);
-      group.hidden = !visible;
     });
     els.pickerEmpty.hidden = !query || matches > 0;
   }
@@ -352,32 +346,11 @@
     clear(els.picker);
     state.tileRefs.clear();
 
-    const grouped = new Map();
-    GROUP_ORDER.forEach((group) => grouped.set(group, []));
-    state.foods.forEach((name) => {
-      const group = state.categories[name] || "Other";
-      if (!grouped.has(group)) grouped.set(group, []);
-      grouped.get(group).push(name);
-    });
-
-    GROUP_ORDER.forEach((group) => {
-      const names = grouped.get(group) || [];
-      if (!names.length) return;
-      names.sort((a, b) => a.localeCompare(b));
-
-      const section = el("section", "picker-group");
-      const title = el("h3", "picker-group-title", t(`group${group}`));
-      title.id = `picker-group-${group.toLowerCase()}`;
-      title.dataset.i18n = `group${group}`;
-
-      const grid = el("div", "ingredient-grid");
-      grid.setAttribute("role", "group");
-      grid.setAttribute("aria-labelledby", title.id);
-      names.forEach((name) => grid.append(tileNode(name)));
-
-      section.append(title, grid);
-      els.picker.append(section);
-    });
+    // The API returns the foods in picker order (wiki food-value tables), so
+    // the grid is a single flat run of tiles with no headings.
+    const grid = el("div", "ingredient-grid");
+    state.foods.forEach((name) => grid.append(tileNode(name)));
+    els.picker.append(grid);
 
     applyFilter();
     countIngredients();
@@ -406,7 +379,6 @@
       if (!response.ok) throw new Error("foods");
       const data = await response.json();
       state.foods = Array.isArray(data.foods) ? data.foods.slice() : [];
-      state.categories = data.categories || {};
       if (Number.isFinite(data.maxIngredients)) {
         state.maxIngredients = data.maxIngredients;
         els.maxIngredients.textContent = String(data.maxIngredients);
@@ -793,7 +765,9 @@
 
   async function init() {
     const lang = detectLang();
-    if (lang === "ru") await loadRuNames();
+    // Russian names are also used by the picker's search box, so load them
+    // even when the interface starts in English.
+    await loadRuNames();
     setStat(state.stat);
     applyLanguage(lang);
     loadFoods();

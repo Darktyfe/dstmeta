@@ -5,6 +5,9 @@ They are trimmed, squared and scaled to 64x64 so every tile in the picker has
 the same visual weight.  The result is committed under ``site/icons``; running
 this script is only necessary when a food is added or an icon looks wrong.
 
+Most icons come from the Fandom wiki.  A handful of items only have a usable
+picture on wiki.gg, so ``DIRECT_ICONS`` points at those images explicitly.
+
 Usage::
 
     py tools/fetch_food_icons.py
@@ -38,9 +41,7 @@ BATCH = 40
 
 # The wiki does not always use the in-game spelling for the icon file.
 WIKI_ALIASES = {
-    "Cooked Heat Gland": "Heat Gland",
     "Crop Seeds": "Crop Seeds Animated",
-    "Dried Dark Petals": "Dark Petals",
     "Dried Fire Nettle Frond": "Fire Nettle Fronds",
     "Dried Foliage": "Foliage",
     "Dried Forget-Me-Lots": "Forget-Me-Lots",
@@ -49,11 +50,19 @@ WIKI_ALIASES = {
     "Dried Succulent": "Succulent",
     "Dried Tillweed": "Tillweed",
     "Fishy Jerky": "Jerky",
-    "Heat Gland": "",
     "Roasted Garlic": "Roast Garlic",
     "Roasted Onion": "Roast Onion",
     "Roasted Toma Root": "Roast Toma Root",
     "Small Fishy Jerky": "Small Jerky",
+}
+
+# Items the Fandom wiki has no item icon for.  wiki.gg keeps the dropped-item
+# pictures, so fetch those directly instead of drawing a placeholder.
+DIRECT_ICONS = {
+    "Cooked Heat Gland": "https://dontstarve.wiki.gg/images/Cooked_Heat_Gland.png",
+    "Dark Petals": "https://dontstarve.wiki.gg/images/Dark_Petals.png",
+    "Dried Dark Petals": "https://dontstarve.wiki.gg/images/Dark_Petals.png",
+    "Heat Gland": "https://dontstarve.wiki.gg/images/Heat_Gland_Dropped.png",
 }
 
 
@@ -155,12 +164,13 @@ def square_icon(data: bytes) -> bytes:
 
 
 def download(url: str) -> bytes:
-    # static.wikia.nocookie.net rejects requests without a wiki referer.
+    # Both wikis' image CDNs want a referer from the matching site.
+    host = "dontstarve.wiki.gg" if "wiki.gg" in url else "dontstarve.fandom.com"
     request = urllib.request.Request(
         url,
         headers={
             "User-Agent": USER_AGENT,
-            "Referer": "https://dontstarve.fandom.com/",
+            "Referer": f"https://{host}/",
         },
     )
     with urllib.request.urlopen(request, timeout=60) as response:
@@ -180,14 +190,14 @@ def main() -> int:
     if unknown:
         parser.error(f"unknown foods: {', '.join(unknown)}")
 
-    urls = icon_urls(wanted)
+    urls = icon_urls([name for name in wanted if name not in DIRECT_ICONS])
     fallback = None
     written = 0
     for name in wanted:
         path = ICON_DIR / f"{slug(name)}.png"
         if path.exists() and not args.force:
             continue
-        url = urls.get(name)
+        url = DIRECT_ICONS.get(name) or urls.get(name)
         if url:
             raw = square_icon(download(url))
         else:

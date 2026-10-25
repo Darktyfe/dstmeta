@@ -287,46 +287,65 @@ class SiteApiTest(unittest.TestCase):
 
 
 class PickerTest(unittest.TestCase):
-    """The ingredient picker groups and its icon set."""
+    """The ingredient picker, its order and its icon set."""
 
-    GROUPS = {
-        "Meat",
-        "Fish",
-        "Vegetable",
-        "Fruit",
-        "Egg",
-        "Dairy",
-        "Sweetener",
-        "Seed",
-        "Frozen",
-        "Decoration",
-        "Dish",
-        "Other",
-    }
+    # Items that are not crockpot ingredients and cannot be cooked, dried or
+    # roasted; they stay out of the menu.
+    TRINKETS = (
+        "Dead Wobster",
+        "Delicious Wobster",
+        "Gears",
+        "Hatching Tallbird Egg",
+        "Lune Tree Blossom",
+        "Phlegm",
+        "Rotten Egg",
+        "Succulent",
+        "Wet Goop",
+    )
 
     @staticmethod
     def slug(name):
         return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
-    def test_every_food_has_a_known_group(self):
-        categories = server.alg.food_categories()
-        self.assertEqual(set(categories), set(server.alg.known_foods()))
-        self.assertLessEqual(set(categories.values()), self.GROUPS)
+    def test_picker_only_offers_crockpot_ingredients(self):
+        for name in server.alg.picker_foods():
+            self.assertIn(name, server.alg.VALUES, name)
+            self.assertNotIn(name, server.alg._RECIPE_DISHES)
+            self.assertNotIn(name, server.alg._HAT_DISHES)
 
-    def test_groups_follow_cooking_tags(self):
-        categories = server.alg.food_categories()
-        self.assertEqual(categories["Meat"], "Meat")
-        self.assertEqual(categories["Fish"], "Fish")
-        self.assertEqual(categories["Carrot"], "Vegetable")
-        self.assertEqual(categories["Berries"], "Fruit")
-        self.assertEqual(categories["Honey"], "Sweetener")
-        self.assertEqual(categories["Ice"], "Frozen")
-        self.assertEqual(categories["Birchnut"], "Seed")
-
-    def test_prepared_dishes_are_their_own_group(self):
-        categories = server.alg.food_categories()
+    def test_picker_skips_dishes_and_trinkets(self):
+        picker = set(server.alg.picker_foods())
+        for name in self.TRINKETS:
+            self.assertNotIn(name, picker)
         for dish in ("Meatballs", "Meaty Stew", "Butter Muffin", "Trail Mix"):
-            self.assertEqual(categories[dish], "Dish")
+            self.assertNotIn(dish, picker)
+
+    def test_picker_offers_every_value_ingredient_once(self):
+        foods = server.alg.picker_foods()
+        self.assertEqual(len(foods), len(set(foods)))
+        expected = set(server.alg.VALUES) - server.alg._RECIPE_DISHES - server.alg._HAT_DISHES
+        self.assertEqual(set(foods), expected)
+
+    def test_picker_follows_the_wiki_food_value_order(self):
+        foods = server.alg.picker_foods()
+        self.assertEqual(
+            foods[:5],
+            ["Barnacles", "Cooked Barnacles", "Morsel", "Cooked Morsel", "Drumstick"],
+        )
+        self.assertLess(foods.index("Morsel"), foods.index("Meat"))
+        self.assertLess(foods.index("Meat"), foods.index("Berries"))
+        self.assertLess(foods.index("Berries"), foods.index("Carrot"))
+        self.assertLess(foods.index("Carrot"), foods.index("Ice"))
+        self.assertLess(foods.index("Ice"), foods.index("Birchnut"))
+        # Extras that the wiki page does not list sit next to their relatives.
+        self.assertEqual(
+            foods[foods.index("Banana") : foods.index("Banana") + 4],
+            ["Banana", "Cooked Banana", "Cave Banana", "Cooked Cave Banana"],
+        )
+        self.assertEqual(
+            foods[foods.index("Mandrake") : foods.index("Mandrake") + 2],
+            ["Mandrake", "Cooked Mandrake"],
+        )
 
     def test_group_names_have_no_duplicate_slugs(self):
         slugs = {}
@@ -383,15 +402,14 @@ class HttpEndpointTest(unittest.TestCase):
             names = json.load(response)
         self.assertEqual(names["Fish"], "Рыба")
 
-    def test_foods_endpoint_returns_picker_categories(self):
+    def test_foods_endpoint_returns_the_picker_list(self):
         with urllib.request.urlopen(self.base + "/api/foods", timeout=5) as response:
             self.assertEqual(response.status, 200)
             payload = json.load(response)
-        foods = payload["foods"]
-        categories = payload["categories"]
-        self.assertEqual(set(categories), set(foods))
-        self.assertEqual(categories["Meat"], "Meat")
-        self.assertEqual(categories["Ice"], "Frozen")
+        self.assertEqual(payload["foods"], server.alg.picker_foods())
+        self.assertNotIn("categories", payload)
+        self.assertEqual(payload["foods"][0], "Barnacles")
+        self.assertNotIn("Meatballs", payload["foods"])
         self.assertEqual(payload["maxIngredients"], server.MAX_INGREDIENTS)
         self.assertEqual(payload["maxIngredientTypes"], server.MAX_INGREDIENT_TYPES)
 
