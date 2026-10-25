@@ -58,15 +58,15 @@ SLOTS = 4
 _HAT_DISHES = frozenset({"Milkmade Hat"})
 
 # Prepared dishes cannot be used as crockpot ingredients.  The game also
-# refuses Dead Wobster / Delicious Wobster (a living Wobster is required for
-# Wobster recipes) and Cooked Mandrake (Mandrake Soup needs a raw Mandrake).
+# refuses Dead Wobster / Delicious Wobster because only a living Wobster is
+# registered as a cooking ingredient.  Cooked Mandrake *is* accepted; Mandrake
+# Soup is the only recipe that needs the raw item (see "!Mandrake").
 _RECIPE_DISHES = frozenset(
     name for name, _, _, _ in RECIPES + WARLY_RECIPES
 )
 _NON_POT_FOODS = _RECIPE_DISHES | {
     "Dead Wobster",
     "Delicious Wobster",
-    "Cooked Mandrake",
 }
 
 # Words that describe how an ingredient was prepared rather than what it is.

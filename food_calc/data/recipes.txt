@@ -37,7 +37,7 @@ Ice Cream; >= 1.0 *Ice, >= 1.0 *Dairy, >= 1.0 *Sweetener; *Meat, *Egg, *Vegetabl
 Jellybeans; >= 1.0 Royal Jelly; *Inedible, *Meat; 12
 Jelly Salad; >= 2.0 *Leafy Meat, >= 2.0 *Sweetener; ; 50
 Kabobs; > 0 *Meat, >= 1.0 Twigs, <= 1.0 *Inedible, <= 1.0 *Monster; ; 5
-Mandrake Soup; >= 1.0 Mandrake; ; 10
+Mandrake Soup; >= 1.0 !Mandrake; ; 10
 Meatballs; > 0 *Meat; *Inedible; -1
 Meaty Stew; >= 3.0 *Meat; *Inedible; 0
 Melonsicle; >= 1.0 Watermelon, >= 1.0 *Ice, >= 1.0 Twigs; *Meat, *Egg, *Vegetable; 10
