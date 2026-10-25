@@ -364,7 +364,6 @@ class PickerTest(unittest.TestCase):
         ]
         self.assertEqual(missing, [])
 
-
 class HttpEndpointTest(unittest.TestCase):
     """The HTTP surface the browser and simple health probes use."""
 
@@ -417,7 +416,6 @@ class HttpEndpointTest(unittest.TestCase):
         with urllib.request.urlopen(self.base + "/icons/meat.png", timeout=5) as response:
             self.assertEqual(response.status, 200)
             self.assertEqual(response.headers.get_content_type(), "image/png")
-
     def test_calculate_endpoint_localizes_errors(self):
         body = json.dumps(
             {

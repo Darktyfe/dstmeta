@@ -170,7 +170,6 @@
     if (!ruNames) ruNames = {};
     return ruNames;
   }
-
   function iconSlug(name) {
     return name
       .toLowerCase()
@@ -225,8 +224,6 @@
     const query = (els.search.value || "").trim().toLowerCase();
     let matches = 0;
     state.tileRefs.forEach((ref, name) => {
-      // Match both the canonical English name and the Russian one, whatever
-      // language the interface is in.
       const localised = (ruNames && ruNames[name]) || "";
       const haystack = `${name}\n${localised}`.toLowerCase();
       const visible = !query || haystack.includes(query);
@@ -346,8 +343,6 @@
     clear(els.picker);
     state.tileRefs.clear();
 
-    // The API returns the foods in picker order (wiki food-value tables), so
-    // the grid is a single flat run of tiles with no headings.
     const grid = el("div", "ingredient-grid");
     state.foods.forEach((name) => grid.append(tileNode(name)));
     els.picker.append(grid);
@@ -367,6 +362,54 @@
     message.append(retry);
     els.picker.append(message);
     els.pickerEmpty.hidden = true;
+  }
+
+  function applyLanguage(lang) {
+    state.lang = lang === "ru" ? "ru" : "en";
+    try {
+      localStorage.setItem("dstmeta.lang", state.lang);
+    } catch (error) {
+      // Storage may be unavailable; the switch still works for this page.
+    }
+
+    document.documentElement.lang = state.lang;
+    document.title = t("title");
+    const description = document.querySelector('meta[name="description"]');
+    if (description) description.setAttribute("content", t("metaDescription"));
+
+    $$("[data-i18n]").forEach((node) => {
+      node.textContent = t(node.dataset.i18n);
+    });
+    $$("[data-i18n-placeholder]").forEach((node) => {
+      node.placeholder = t(node.dataset.i18nPlaceholder);
+    });
+    $$("[data-i18n-aria-label]").forEach((node) => {
+      node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+    });
+
+    els.langButtons.forEach((button) => {
+      const active = button.dataset.lang === state.lang;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    countIngredients();
+
+    // Re-render picker state in the new language.
+    if (state.loadFailed) {
+      showPickerLoadError();
+    } else {
+      refreshPickerLabels();
+    }
+  }
+
+  async function switchLanguage(lang) {
+    if (lang === state.lang) return;
+    if (!state.errorKey) clearError();
+    if (lang === "ru") {
+      await loadRuNames();
+    }
+    applyLanguage(lang);
   }
 
   async function loadFoods() {
@@ -741,6 +784,10 @@
     button.addEventListener("click", () => switchLanguage(button.dataset.lang));
   });
 
+  els.langButtons.forEach((button) => {
+    button.addEventListener("click", () => switchLanguage(button.dataset.lang));
+  });
+
   els.statButtons.forEach((button) => {
     button.addEventListener("click", () => setStat(button.dataset.stat));
   });
@@ -770,6 +817,7 @@
     await loadRuNames();
     setStat(state.stat);
     applyLanguage(lang);
+    loadServerConfig();
     loadFoods();
   }
 
