@@ -4,6 +4,8 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
+  const I18N = window.DSTMETA_I18N || { en: {} };
+
   const els = {
     form: $("#planner"),
     ingredients: $("#ingredients"),
@@ -11,6 +13,7 @@
     maxIngredients: $("#max-ingredients"),
     maxTypes: $("#max-types"),
     sample: $("#sample"),
+    langButtons: $$(".lang-switch button"),
     statButtons: $$(".segmented button"),
     warly: $("#warly"),
     ignoreDried: $("#ignore-dried"),
@@ -42,18 +45,28 @@
   };
 
   const state = {
+    lang: "en",
     stat: "Hunger",
     loading: false,
+    data: null,
+    errorKey: null,
   };
 
   const STAT_KEYS = ["Hunger", "Sanity", "Health"];
   const STAT_CLASS = { Hunger: "hunger", Sanity: "sanity", Health: "health" };
   const STEP_ICON = {
-    cook: "🍲", roast: "🔥", dry: "🥓", eat: "🍴", keep: "✋",
+    cook: "🍲", roast: "🔥", dry: "🥓", eat: "🍴", keep: "✋", prep: "🔪",
   };
-  const STEP_VERB = {
-    cook: "Cook", roast: "Roast", dry: "Dry", eat: "Eat", keep: "Keep",
+  const STEP_VERB_KEY = {
+    cook: "verbCook",
+    roast: "verbRoast",
+    dry: "verbDry",
+    eat: "verbEat",
+    keep: "verbKeep",
+    prep: "verbPrep",
   };
+
+  let ruNames = null;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -73,13 +86,129 @@
     return String(rounded);
   }
 
+  function t(key, vars) {
+    const dict = I18N[state.lang] || {};
+    let text = dict[key];
+    if (text === undefined) text = (I18N.en || {})[key];
+    if (text === undefined) return key;
+    if (vars) {
+      Object.keys(vars).forEach((name) => {
+        text = text.split(`{${name}}`).join(String(vars[name]));
+      });
+    }
+    return text;
+  }
+
+  function pluralForm(n) {
+    if (state.lang !== "ru") return n === 1 ? "One" : "Many";
+    const mod100 = Math.abs(n) % 100;
+    const mod10 = mod100 % 10;
+    if (mod100 > 10 && mod100 < 20) return "Many";
+    if (mod10 === 1) return "One";
+    if (mod10 >= 2 && mod10 <= 4) return "Few";
+    return "Many";
+  }
+
+  function countWord(n, base) {
+    return t(base + pluralForm(n));
+  }
+
+  function statName(stat) {
+    return t(`stat${stat}`);
+  }
+
+  function statUnit(stat) {
+    return t(`statUnit${stat}`);
+  }
+
+  function statBy(stat) {
+    return t(`statBy${stat}`);
+  }
+
+  function foodName(name) {
+    if (state.lang === "ru" && ruNames && ruNames[name]) return ruNames[name];
+    return name;
+  }
+
+  function storedLang() {
+    try {
+      const saved = localStorage.getItem("dstmeta.lang");
+      return saved === "en" || saved === "ru" ? saved : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function detectLang() {
+    const saved = storedLang();
+    if (saved) return saved;
+    const browser = (navigator.language || "en").toLowerCase();
+    return browser.startsWith("ru") ? "ru" : "en";
+  }
+
+  async function loadRuNames() {
+    if (ruNames) return ruNames;
+    try {
+      const response = await fetch("names_ru.json", { cache: "no-store" });
+      if (response.ok) ruNames = await response.json();
+    } catch (error) {
+      // Fall back to the canonical English names.
+    }
+    if (!ruNames) ruNames = {};
+    return ruNames;
+  }
+
   function countIngredients() {
     const names = els.ingredients.value
       .split(/[\n,]/)
       .map((name) => name.trim())
       .filter(Boolean);
-    const label = names.length === 1 ? "1 item" : `${names.length} items`;
-    els.itemCount.textContent = label;
+    els.itemCount.textContent =
+      `${names.length} ${countWord(names.length, "item")}`;
+  }
+
+  function applyLanguage(lang) {
+    state.lang = lang === "ru" ? "ru" : "en";
+    try {
+      localStorage.setItem("dstmeta.lang", state.lang);
+    } catch (error) {
+      // Storage may be unavailable; the switch still works for this page.
+    }
+
+    document.documentElement.lang = state.lang;
+    document.title = t("title");
+    const description = document.querySelector('meta[name="description"]');
+    if (description) description.setAttribute("content", t("metaDescription"));
+
+    $$("[data-i18n]").forEach((node) => {
+      node.textContent = t(node.dataset.i18n);
+    });
+    $$("[data-i18n-placeholder]").forEach((node) => {
+      node.placeholder = t(node.dataset.i18nPlaceholder);
+    });
+    $$("[data-i18n-aria-label]").forEach((node) => {
+      node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+    });
+
+    els.langButtons.forEach((button) => {
+      const active = button.dataset.lang === state.lang;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    countIngredients();
+    setLoading(state.loading);
+    if (state.errorKey) showError(t(state.errorKey), state.errorKey);
+    if (state.data) render(state.data);
+  }
+
+  async function switchLanguage(lang) {
+    if (lang === state.lang) return;
+    if (!state.errorKey) clearError();
+    if (lang === "ru") {
+      await loadRuNames();
+    }
+    applyLanguage(lang);
   }
 
   async function loadServerConfig() {
@@ -120,12 +249,14 @@
     };
   }
 
-  function showError(message) {
+  function showError(message, key) {
+    state.errorKey = key || null;
     els.error.textContent = message;
     els.error.hidden = false;
   }
 
   function clearError() {
+    state.errorKey = null;
     els.error.textContent = "";
     els.error.hidden = true;
   }
@@ -134,7 +265,7 @@
     state.loading = loading;
     els.calculate.disabled = loading;
     els.calculate.classList.toggle("loading", loading);
-    els.buttonLabel.textContent = loading ? "Calculating…" : "Calculate plan";
+    els.buttonLabel.textContent = loading ? t("calculating") : t("calculate");
   }
 
   async function calculate(event) {
@@ -144,7 +275,7 @@
 
     const ingredients = els.ingredients.value.trim();
     if (!ingredients) {
-      showError("Add at least one ingredient first.");
+      showError(t("errNoIngredients"), "errNoIngredients");
       els.ingredients.focus();
       return;
     }
@@ -159,6 +290,7 @@
         body: JSON.stringify({
           ingredients,
           stat: state.stat,
+          lang: state.lang,
           warly: els.warly.checked,
           ignoreDried: els.ignoreDried.checked,
           ignoreMilkmade: els.ignoreMilkmade.checked,
@@ -170,12 +302,14 @@
       let data;
       try {
         data = await response.json();
-      } catch {
-        throw new Error("The calculator returned an unreadable response.");
+      } catch (error) {
+        showError(t("errUnreadable"), "errUnreadable");
+        return;
       }
 
       if (!response.ok) {
-        throw new Error(data.error || "The calculator could not build a plan.");
+        showError(data.error || t("errBuild"));
+        return;
       }
 
       render(data);
@@ -184,11 +318,11 @@
         els.results.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } catch (error) {
-      showError(
-        error instanceof TypeError
-          ? "Could not reach the calculator. Is the local server running?"
-          : error.message
-      );
+      if (error instanceof TypeError) {
+        showError(t("errUnreachable"), "errUnreachable");
+      } else {
+        showError(error.message || t("errBuild"));
+      }
     } finally {
       setLoading(false);
     }
@@ -197,14 +331,14 @@
   function chip(stat, value) {
     const node = el("span", `chip ${STAT_CLASS[stat]}`);
     if (Number(value) < -1e-9) node.classList.add("negative");
-    node.append(document.createTextNode(stat));
+    node.append(document.createTextNode(statName(stat)));
     node.append(el("b", null, fmt(value)));
     return node;
   }
 
   function miniStat(stat, value) {
     const node = el("span", Number(value) < -1e-9 ? "mini-stat negative" : "mini-stat");
-    node.append(document.createTextNode(`${stat} `));
+    node.append(document.createTextNode(`${statName(stat)} `));
     node.append(el("b", null, fmt(value)));
     return node;
   }
@@ -220,24 +354,25 @@
     clear(container);
     combo.forEach((ingredient, index) => {
       if (index) container.append(document.createTextNode(" "));
-      container.append(el("span", null, ingredient));
+      container.append(el("span", null, foodName(ingredient)));
     });
   }
 
   function stepTitle(action) {
     const title = el("div", "step-title");
-    title.append(el("span", "verb", STEP_VERB[action.kind] || action.kind));
+    const verbKey = STEP_VERB_KEY[action.kind];
+    title.append(el("span", "verb", verbKey ? t(verbKey) : action.kind));
 
     if (action.kind === "cook") {
-      title.append(document.createTextNode(action.ingredients.join(", ")));
+      title.append(document.createTextNode(action.ingredients.map(foodName).join(", ")));
       title.append(el("span", "arrow", "→"));
-      title.append(document.createTextNode(action.food));
+      title.append(document.createTextNode(foodName(action.food)));
     } else if (action.kind === "roast" || action.kind === "dry") {
-      title.append(document.createTextNode(action.source));
+      title.append(document.createTextNode(foodName(action.source)));
       title.append(el("span", "arrow", "→"));
-      title.append(document.createTextNode(action.food));
+      title.append(document.createTextNode(foodName(action.food)));
     } else {
-      title.append(document.createTextNode(action.food));
+      title.append(document.createTextNode(foodName(action.food)));
     }
 
     return title;
@@ -252,9 +387,9 @@
 
     const stats = el("div", "step-stats");
     if (action.kind === "keep") {
-      stats.append(el("span", "mini-stat", "not eaten"));
+      stats.append(el("span", "mini-stat", t("notEaten")));
     } else if (action.kind === "prep") {
-      stats.append(el("span", "mini-stat", "for the pot"));
+      stats.append(el("span", "mini-stat", t("forThePot")));
     } else {
       STAT_KEYS.forEach((stat) => {
         stats.append(miniStat(stat, action.stats[stat] ?? 0));
@@ -277,35 +412,39 @@
     els.dishesCount.textContent = String(data.totalDishes);
 
     if (!data.dishes.length) {
-      els.dishesNote.textContent =
-        "Add at least four ingredients to see crockpot dishes.";
+      els.dishesNote.textContent = t("dishesEmpty");
       return;
     }
 
     if (data.totalDishes > data.dishes.length) {
-      els.dishesNote.textContent =
-        `Showing the top ${data.dishes.length} of ${data.totalDishes} dishes for ${data.stat}.`;
+      els.dishesNote.textContent = t("dishesTop", {
+        shown: data.dishes.length,
+        total: data.totalDishes,
+        stat: statBy(data.stat),
+      });
     } else {
-      els.dishesNote.textContent =
-        `${data.totalDishes} dish${data.totalDishes === 1 ? "" : "es"} can be made, ` +
-        `ranked by ${data.stat.toLowerCase()}.`;
+      els.dishesNote.textContent = t("dishesAll", {
+        n: data.totalDishes,
+        word: countWord(data.totalDishes, "dish"),
+        stat: statBy(data.stat),
+      });
     }
 
     data.dishes.forEach((dish) => {
       const card = el("article", "dish");
 
       const head = el("div", "dish-head");
-      head.append(el("span", "dish-name", dish.name));
+      head.append(el("span", "dish-name", foodName(dish.name)));
       head.append(
-        el("span", "dish-score", `${fmt(dish.score)} ${data.stat.toLowerCase()}`)
+        el("span", "dish-score", `${fmt(dish.score)} ${statUnit(data.stat)}`)
       );
 
       const stats = el("div", "dish-stats");
       STAT_KEYS.forEach((stat) => {
-        stats.append(el("span", null, `${stat} ${fmt(dish.stats[stat] ?? 0)}`));
+        stats.append(el("span", null, `${statName(stat)} ${fmt(dish.stats[stat] ?? 0)}`));
       });
 
-      const combo = el("p", "dish-combo", dish.combination.join(" + "));
+      const combo = el("p", "dish-combo", dish.combination.map(foodName).join(" + "));
       card.append(head, stats, combo);
       els.dishesGrid.append(card);
     });
@@ -314,42 +453,47 @@
   }
 
   function render(data) {
-    els.summaryStat.textContent = data.stat;
+    state.data = data;
+
+    els.summaryStat.textContent = statName(data.stat);
     els.totalValue.textContent = fmt(data.total);
-    els.totalUnit.textContent = data.stat.toLowerCase();
+    els.totalUnit.textContent = statUnit(data.stat);
 
     const steps = data.plan.length;
     const items = data.ingredients.length;
-    els.planMode.textContent = data.exact ? "exhaustive" : "beam search";
-    els.planMode.title = data.exact
-      ? "Every combination was searched."
-      : "Approximate: only the most promising branches were searched.";
-    els.planMeta.textContent =
-      `${steps} step${steps === 1 ? "" : "s"} · ` +
-      `${items} ingredient${items === 1 ? "" : "s"} · ` +
-      (data.warly ? "Warly recipes included" : "standard recipes") +
-      (data.dried ? " · drying rack enabled" : "") +
-      (data.milkmade ? " · Milkmade Hat allowed" : "") +
-      (data.overTime ? " · over-time stats counted" : "") +
-      (data.exact ? "" : " · beam search (approximate)") +
-      ` · ${data.engine === "C++" ? "C++" : "Python"} engine`;
+    els.planMode.textContent = t(data.exact ? "planExhaustive" : "planBeam");
+    els.planMode.title = t(data.exact ? "planExhaustiveTitle" : "planBeamTitle");
+
+    const meta = [
+      `${steps} ${countWord(steps, "step")}`,
+      `${items} ${countWord(items, "ingredient")}`,
+      t(data.warly ? "metaWarly" : "metaStandard"),
+    ];
+    if (data.dried) meta.push(t("metaDried"));
+    if (data.milkmade) meta.push(t("metaMilkmade"));
+    if (data.overTime) meta.push(t("metaOverTime"));
+    if (!data.exact) meta.push(t("metaBeam"));
+    meta.push(t("metaEngine", { engine: data.engine === "C++" ? "C++" : "Python" }));
+    els.planMeta.textContent = meta.join(" · ");
 
     fillChips(els.totalChips, data.totals);
 
     const allowed = STAT_KEYS.filter((stat) => Number(data.losses[stat]) > 0);
     if (allowed.length) {
       els.lossSummary.textContent =
-        "Allowed loss: " +
-        allowed.map((stat) => `${stat.toLowerCase()} ${fmt(data.losses[stat])}`).join(", ");
+        t("lossAllowed") +
+        allowed
+          .map((stat) => `${statName(stat).toLowerCase()} ${fmt(data.losses[stat])}`)
+          .join(", ");
     } else {
-      els.lossSummary.textContent = "No net losses allowed";
+      els.lossSummary.textContent = t("lossNone");
     }
 
     renderPlan(data);
 
     if (data.bestDish) {
       els.bestCard.hidden = false;
-      els.bestName.textContent = data.bestDish.name;
+      els.bestName.textContent = foodName(data.bestDish.name);
       fillChips(els.bestStats, data.bestDish.stats);
       fillCombo(els.bestCombo, data.bestDish.combination);
     } else {
@@ -367,6 +511,10 @@
     }
   });
 
+  els.langButtons.forEach((button) => {
+    button.addEventListener("click", () => switchLanguage(button.dataset.lang));
+  });
+
   els.statButtons.forEach((button) => {
     button.addEventListener("click", () => setStat(button.dataset.stat));
   });
@@ -380,7 +528,7 @@
   });
 
   els.sample.addEventListener("click", () => {
-    els.ingredients.value = "Meat\nMeat\nMeat\nIce\nMeat";
+    els.ingredients.value = t("sample");
     countIngredients();
     setStat("Hunger");
     els.ingredients.focus();
@@ -393,7 +541,13 @@
   els.ignoreOverTime.addEventListener("change", clearError);
   els.ingredients.addEventListener("input", clearError);
 
-  setStat(state.stat);
-  countIngredients();
-  loadServerConfig();
+  async function init() {
+    const lang = detectLang();
+    if (lang === "ru") await loadRuNames();
+    setStat(state.stat);
+    applyLanguage(lang);
+    loadServerConfig();
+  }
+
+  init();
 })();

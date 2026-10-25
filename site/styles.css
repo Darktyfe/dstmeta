@@ -150,6 +150,45 @@ a {
   letter-spacing: 0.02em;
 }
 
+.lang-switch {
+  display: inline-flex;
+  align-self: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(16, 13, 10, 0.55);
+}
+
+.lang-switch button {
+  appearance: none;
+  padding: 5px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.lang-switch button:hover {
+  color: var(--ink);
+}
+
+.lang-switch button.active {
+  background: linear-gradient(145deg, #f0a52c, #c46f12);
+  color: #1a120a;
+}
+
+.lang-switch button:focus-visible {
+  outline: 2px solid var(--amber-soft);
+  outline-offset: 2px;
+}
+
 /* Hero */
 
 .hero {
