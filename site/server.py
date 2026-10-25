@@ -27,7 +27,8 @@ sys.path.insert(0, str(CODE_DIR))
 import alg  # noqa: E402  (path is set up above)
 import cpp_engine  # noqa: E402
 
-MAX_INGREDIENTS = 20
+MAX_INGREDIENTS = 100
+MAX_INGREDIENT_TYPES = 24
 MAX_BODY_BYTES = 1_000_000
 MAX_DISHES = 80
 STAT_KEYS = alg.STAT_NAMES
@@ -52,6 +53,16 @@ def parse_ingredients(value):
     return names
 
 
+def check_ingredient_types(names):
+    """Reject inventories with more kinds than the planner handles quickly."""
+    kinds = len(set(names))
+    if kinds > MAX_INGREDIENT_TYPES:
+        raise ValueError(
+            f"Too many different ingredients for one plan "
+            f"(max {MAX_INGREDIENT_TYPES} kinds, got {kinds})."
+        )
+
+
 def resolve_names(names):
     """Return canonical names and a list of names the data files do not know."""
     resolved = []
@@ -66,20 +77,20 @@ def resolve_names(names):
     return resolved, unknown
 
 
-def stats_dict(name):
-    stats = alg.get_food_stats(name)
+def stats_dict(name, over_time=True):
+    stats = alg.get_food_stats(name, over_time)
     if stats is None:
         return {stat: 0.0 for stat in STAT_KEYS}
     return {stat: float(value) for stat, value in zip(STAT_KEYS, stats)}
 
 
-def action_dict(action):
+def action_dict(action, over_time=True):
     kind, source, target = action
     result = {
         "kind": kind,
         "description": alg.describe_action(action),
         "food": target,
-        "stats": stats_dict(target),
+        "stats": stats_dict(target, over_time),
     }
     if kind == "cook":
         result["ingredients"] = list(source)
@@ -88,10 +99,10 @@ def action_dict(action):
     return result
 
 
-def dish_dict(dish, combo, score):
+def dish_dict(dish, combo, score, over_time=True):
     return {
         "name": dish,
-        "stats": stats_dict(dish),
+        "stats": stats_dict(dish, over_time),
         "score": float(score),
         "combination": list(combo),
     }
@@ -106,25 +117,34 @@ def calculate(payload):
     if stat not in STAT_KEYS:
         raise ValueError(f"stat must be one of {', '.join(STAT_KEYS)}")
     warly = bool(payload.get("warly", False))
-    # The site checkbox is "Ignore Dried variants" and defaults to on.
+    # The site checkboxes are "Ignore Dried variants", "Ignore Milkmade Hat"
+    # and "Ignore over time stats"; all three default to on.
     dried = not bool(payload.get("ignoreDried", True))
+    milkmade = not bool(payload.get("ignoreMilkmade", True))
+    over_time = not bool(payload.get("ignoreOverTime", True))
     losses = alg.normalize_losses(payload.get("losses"))
 
     ingredients, unknown = resolve_names(names)
     if unknown:
         raise ValueError(alg.unknown_food_message(unknown))
+    check_ingredient_types(ingredients)
+    exact = not alg.needs_fast_plan(ingredients)
 
     total, actions = alg.find_best_plan(
-        ingredients, stat, warly, losses=losses, dried=dried
+        ingredients, stat, warly, losses=losses, dried=dried,
+        over_time=over_time, milkmade=milkmade,
     )
-    totals = {key: float(value) for key, value in alg.plan_totals(actions).items()}
+    totals = {
+        key: float(value)
+        for key, value in alg.plan_totals(actions, over_time).items()
+    }
 
     dishes = []
     if len(ingredients) >= alg.SLOTS:
-        cooked = alg.cookable_dishes(ingredients, warly, dried)
+        cooked = alg.cookable_dishes(ingredients, warly, dried, milkmade)
         for dish, combinations in cooked.items():
-            score = alg.get_food_stat(dish, stat)
-            dishes.append(dish_dict(dish, combinations[0], score))
+            score = alg.get_food_stat(dish, stat, over_time)
+            dishes.append(dish_dict(dish, combinations[0], score, over_time))
         dishes.sort(key=lambda item: (-item["score"], item["name"]))
     total_dishes = len(dishes)
     dishes = dishes[:MAX_DISHES]
@@ -144,11 +164,14 @@ def calculate(payload):
         "stat": stat,
         "warly": warly,
         "dried": dried,
+        "milkmade": milkmade,
+        "overTime": over_time,
         "losses": losses,
-        "engine": cpp_engine.engine_name(),
+        "engine": cpp_engine.engine_name() if exact else "Python",
+        "exact": exact,
         "total": float(total),
         "totals": totals,
-        "plan": [action_dict(action) for action in actions],
+        "plan": [action_dict(action, over_time) for action in actions],
         "bestDish": best_dish,
         "dishes": dishes,
         "totalDishes": total_dishes,
@@ -160,10 +183,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
+        if path == "/health":
+            self.send_json(HTTPStatus.OK, {"status": "ok"})
+            return
         if path == "/api/foods":
             self.send_json(
                 HTTPStatus.OK,
-                {"foods": alg.known_foods(), "stats": list(STAT_KEYS)},
+                {
+                    "foods": alg.known_foods(),
+                    "stats": list(STAT_KEYS),
+                    "maxIngredients": MAX_INGREDIENTS,
+                    "maxIngredientTypes": MAX_INGREDIENT_TYPES,
+                },
             )
             return
         if path in ("", "/"):
@@ -237,11 +268,39 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    global MAX_INGREDIENTS, MAX_INGREDIENT_TYPES
     parser = argparse.ArgumentParser(description="Run the DSTMeta website.")
     parser.add_argument("--host", default="127.0.0.1", help="interface to bind")
     parser.add_argument("--port", type=int, default=8000, help="port to listen on")
+    parser.add_argument(
+        "--max-ingredients",
+        type=int,
+        default=MAX_INGREDIENTS,
+        metavar="N",
+        help=(
+            "ingredients accepted per calculation (default: %(default)s); "
+            "large plans take much longer to search"
+        ),
+    )
+    parser.add_argument(
+        "--max-types",
+        type=int,
+        default=MAX_INGREDIENT_TYPES,
+        metavar="N",
+        help=(
+            "different ingredient kinds accepted per calculation "
+            "(default: %(default)s)"
+        ),
+    )
     parser.add_argument("--open", action="store_true", help="open the page in a browser")
     args = parser.parse_args()
+
+    if args.max_ingredients < 1:
+        parser.error("--max-ingredients must be at least 1")
+    if args.max_types < 1:
+        parser.error("--max-types must be at least 1")
+    MAX_INGREDIENTS = args.max_ingredients
+    MAX_INGREDIENT_TYPES = args.max_types
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     url = f"http://{args.host}:{args.port}/"

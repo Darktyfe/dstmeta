@@ -14,12 +14,18 @@ Python 3.8+:
 py site\server.py
 ```
 
+On Windows you can also double-click `start.bat`, which runs the server with
+`--open` and stops on an error instead of closing the window.
+
 Then open <http://127.0.0.1:8000>. Use `--port 8080` to change the port and
 `--open` to launch the browser automatically. The page has the same options as
 the CLI: choose `Hunger`, `Sanity` or `Health`, enable Warly's exclusive
-recipes, turn drying-rack variants on or off, and set permissible losses. To
-keep the exhaustive search responsive, the web planner accepts up to 20
-ingredients per calculation; the CLI has no such limit.
+recipes, turn drying-rack variants on or off, ignore the Milkmade Hat, ignore
+stats that are restored over time, and set permissible losses. The web planner
+accepts up to 100 ingredients made of at most 24 different kinds per
+calculation; raise those limits with `--max-ingredients N` and `--max-types N`.
+The CLI has no caps. `GET /health` answers `{"status": "ok"}` for local
+monitors and extensions that probe the server.
 
 ## Usage
 
@@ -47,7 +53,13 @@ normal characters cannot cook. `--dried` adds drying-rack variants such as
 `Meat` -> `Jerky` and `Kelp Fronds` -> `Dried Kelp Fronds`; it is off by
 default because a rack is much slower than a campfire. On the site the same
 option is the **Ignore Dried variants** switch, which starts enabled.
-`--check` validates the data files and lists gaps.
+`--over-time` counts the part of a food's stats that is restored gradually
+(for example 30 of Soothing Tea's 45 sanity or 120 of Jellybeans' 122 health);
+by default only the stats given on the first bite are counted. `--milkmade`
+allows the Milkmade Hat, which is worn as a hat instead of eaten; by default it
+is ignored. On the site these are the **Ignore over time stats** and **Ignore
+Milkmade Hat** switches, both starting enabled. `--check` validates the data
+files and lists gaps.
 
 `--loss-hunger`, `--loss-sanity` and `--loss-health` set the permissible net
 loss for each stat (default `0`). A plan is only considered if its final totals
@@ -70,9 +82,11 @@ The output has three parts: every dish the ingredients can make (best first),
 the best single dish, and the best plan for the whole inventory. The plan may
 eat ingredients raw, roast them on a campfire first (for example `Carrot` ->
 `Roasted Carrot`), dry them on a rack when `--dried` is enabled, keep
-ingredients that would hurt, or group four items into a dish. It is an
-exhaustive search, so it finds the highest total for the chosen stat rather
-than only the best single dish.
+ingredients that would hurt, or group four items into a dish. For small and
+duplicate-heavy inventories it is an exhaustive search, so it finds the highest
+total for the chosen stat rather than only the best single dish. Very large
+mixed inventories switch to a beam search that answers in a couple of seconds
+but may miss the exact optimum (see below).
 
 When several raw/cooked/dried variants produce the same dish, the
 least-processed variant is preferred, so the planner does not roast or dry an
@@ -101,19 +115,28 @@ If the library is missing or a task exceeds the native engine's limits (48
 ingredient kinds, 255 copies of one kind, 1024 items overall), the program
 falls back to the pure Python engine — same results, just slower.
 
-Rough wall-clock times for the worst case (20 distinct ingredients), from an
-earlier Python-only build to the current native engine:
+The exact search keeps every nondominated plan for every count vector, so its
+work grows with the product of `(count + 1)` over the ingredient kinds. Above
+2,000,000 such states the planner switches to a beam search over pot groups:
+it keeps the most promising partial plans, finishes each one with the leftover
+items, and returns a valid plan without waiting for the exact answer. A typical
+early-game backpack (about 75–80 items in 10 kinds) takes around a second;
+24 different kinds take around ten seconds. The site marks such results as
+`beam search (approximate)` in the Plan card and the plan summary, and the CLI
+prints a note.
 
-|   | 18 items | 20 items | 22 distinct |
-|---|---------|----------|-------------|
-| Python engine (old) | ~2.9 s | ~17 s | minutes |
-| Native engine | ~1.8 s | ~2.8 s | ~17 s |
+Rough wall-clock times for the worst case (20+ distinct ingredients), from
+the current native engine and the fast planner:
 
-The site caps inputs at 20 so a request still finishes within a few seconds.
-The optional drying search adds a few individual options per ingredient and a
-handful of extra pot variants where drying changes a recipe-relevant tag, so
-it stays in the same range. 22 distinct items remain OK for the CLI when you
-can wait.
+|   | 18 distinct | 20 distinct | 22 distinct | 24 distinct |
+|---|-------------|-------------|-------------|-------------|
+| Exact search | ~2.5 s | ~6 s | too large | too large |
+| Fast planner | not used | not used | ~7.5 s | ~11 s |
+
+The site caps inputs at 100 items and 24 kinds so a request still finishes
+within seconds. The optional drying search adds a few individual options per
+ingredient and a handful of extra pot variants where drying changes a
+recipe-relevant tag, so it stays in the same range.
 
 Rebuilding the library needs any C++17 compiler:
 
@@ -155,6 +178,7 @@ food_calc/
     recipes.txt     crockpot recipes
     cooked_table.txt  campfire raw -> cooked conversions
     dried_table.txt   drying rack raw -> dried conversions
+    over_time.txt     gradual part of a food's stats
     warly_recipes.txt Warly's Portable Crock Pot recipes
 site/
   index.html        calculator page
@@ -173,6 +197,16 @@ tools/
 
 ```
 Meatballs: 62.5, 5, 3
+```
+
+`over_time.txt` — the part of those stats that is restored (or drained)
+gradually instead of on the first bite, same three values per line. Most foods
+are not listed:
+
+```
+Jellybeans: 0, 0, 120
+Soothing Tea: 0, 30, 0
+Milkmade Hat: 187.5, -5.3, 0
 ```
 
 `value.txt` — ingredient tags; the weight is how much one item contributes:
@@ -217,8 +251,16 @@ Tags in recipes may be categories (`*Meat`, `*Vegetable`), ingredient names
 (`Honey`, `Twigs`) or starred ingredient names (`*Asparagus`). An ingredient
 always matches its own name, and processing words (`Cooked`, `Roasted`,
 `Prepared`, `Braised`, ...) are ignored for that match, so `*Asparagus`
-matches `Cooked Asparagus`. `*Monster`, `*Monster Food` and `*Diary` are
-accepted as aliases of `*Monster Meat` and `*Dairy`.
+matches `Cooked Asparagus`. Prefixing a name with `!` turns that off and only
+matches the raw item, which is what the game does for recipes such as Turkey
+Dinner:
+
+```
+Turkey Dinner; >= 2.0 !Drumstick, > 1.0 *Meat, >= 0.5 *Fruit; ; 10
+```
+
+`*Monster`, `*Monster Food` and `*Diary` are accepted as aliases of
+`*Monster Meat` and `*Dairy`.
 
 ## Notes
 
@@ -228,7 +270,15 @@ accepted as aliases of `*Monster Meat` and `*Dairy`.
 * Recipe selection models tags and priorities, not cooking time or freshness.
 * Drying-rack times are therefore ignored; `--dried` only adds the dried food
   as an option.
-* A few recipes in the game have raw-only ingredient rules (for example Turkey
-  Dinner). Those rules are not modelled; apart from the rejected items above,
-  the engine treats cooked forms as interchangeable with their raw counterparts
-  in the pot.
+* Stats restored over time are not stacking effects: eating several Jellybeans
+  does not heal more than one. By default the planner counts only the stats a
+  food gives on the first bite; enable over-time stats to count the full value
+  from `food.txt`.
+* The Milkmade Hat is cooked in the pot but worn as a hat, so it is ignored by
+  default. `--milkmade` treats it as an ordinary dish.
+* Grim Galette swaps the eater's health and sanity percentages, which the
+  additive stat model cannot express; only its flat stats are used.
+* Turkey Dinner is the raw-only rule the engine models: `!Drumstick` in
+  `recipes.txt` makes Fried Drumsticks fall through to Meatballs. Other
+  raw-only rules in the game are not modelled, so there the engine treats
+  cooked forms as interchangeable with their raw counterparts in the pot.

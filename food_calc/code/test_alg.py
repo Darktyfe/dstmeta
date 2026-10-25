@@ -1,6 +1,7 @@
 """Tests for the crockpot engine.  Run with ``py food_calc/code/test_alg.py``."""
 
 import unittest
+from collections import Counter
 
 import alg
 
@@ -85,6 +86,32 @@ class CrockpotTest(unittest.TestCase):
         # Mandrake Soup needs a raw Mandrake; roasting it first is one-way.
         self.assertIsNone(
             alg.crockpot(("Cooked Mandrake", "Ice", "Twigs", "Meat"))
+        )
+
+    def test_turkey_dinner_requires_raw_drumsticks(self):
+        # Wiki: "Using Fried Drumsticks may result in Meatballs, as the recipe
+        # strictly requires uncooked drumsticks."
+        self.assertEqual(
+            alg.crockpot(
+                ("Berries", "Drumstick", "Fried Drumstick", "Monster Meat")
+            ),
+            "Meatballs",
+        )
+        self.assertEqual(
+            alg.crockpot(("Fried Drumstick", "Fried Drumstick", "Meat", "Berries")),
+            "Meatballs",
+        )
+
+    def test_turkey_dinner_with_two_raw_drumsticks(self):
+        self.assertEqual(
+            alg.crockpot(
+                ("Berries", "Drumstick", "Drumstick", "Monster Meat")
+            ),
+            "Turkey Dinner",
+        )
+        self.assertEqual(
+            alg.crockpot(("Drumstick", "Drumstick", "Meat", "Carrot")),
+            "Turkey Dinner",
         )
 
 
@@ -213,9 +240,11 @@ class CookingTest(unittest.TestCase):
         self.assertEqual(alg.crockpot(ingredients, warly=True), "Asparagazpacho")
 
     def test_warly_grim_galette(self):
+        # Wiki: 2 Nightmare Fuel, 1 Potato and 1 Onion in the Portable Crock Pot.
         ingredients = ("Potato", "Onion", "Nightmare Fuel", "Nightmare Fuel")
         self.assertEqual(alg.crockpot(ingredients), "Wet Goop")
         self.assertEqual(alg.crockpot(ingredients, warly=True), "Grim Galette")
+        self.assertEqual(alg.get_food_stats("Grim Galette"), (25.0, 5.0, 1.0))
 
 
 class DryingTest(unittest.TestCase):
@@ -312,6 +341,52 @@ class DryingTest(unittest.TestCase):
         )
 
 
+class OverTimeTest(unittest.TestCase):
+    def test_over_time_part_is_recorded(self):
+        self.assertEqual(alg.get_over_time_stats("Soothing Tea"), (0.0, 30.0, 0.0))
+        self.assertEqual(alg.get_over_time_stats("Jellybeans"), (0.0, 0.0, 120.0))
+        self.assertEqual(alg.get_over_time_stats("Milkmade Hat"), (187.5, -5.3, 0.0))
+        self.assertEqual(alg.get_over_time_stats("Meat"), (0.0, 0.0, 0.0))
+
+    def test_ignoring_over_time_keeps_instant_stats(self):
+        self.assertEqual(alg.get_food_stats("Soothing Tea"), (0.0, 45.0, 3.0))
+        self.assertEqual(
+            alg.get_food_stats("Soothing Tea", over_time=False), (0.0, 15.0, 3.0)
+        )
+        self.assertEqual(alg.get_food_stats("Jellybeans"), (0.0, 5.0, 122.0))
+        self.assertEqual(
+            alg.get_food_stats("Jellybeans", over_time=False), (0.0, 5.0, 2.0)
+        )
+        self.assertEqual(
+            alg.get_food_stats("Milkmade Hat", over_time=False), (0.0, 0.0, 0.0)
+        )
+        self.assertEqual(
+            alg.get_food_stats("Meat", over_time=False), (25.0, -10.0, 1.0)
+        )
+
+    def test_over_time_changes_the_plan_total(self):
+        ingredients = ["Forget-Me-Lots", "Honey", "Ice", "Ice"]
+        counted, counted_actions = alg.find_best_plan(ingredients, "Sanity")
+        instant, instant_actions = alg.find_best_plan(
+            ingredients, "Sanity", over_time=False
+        )
+        self.assertEqual(counted, 45)
+        self.assertEqual(instant, 15)
+        self.assertEqual(alg.plan_totals(counted_actions)["Sanity"], 45)
+        self.assertEqual(
+            alg.plan_totals(instant_actions, over_time=False)["Sanity"], 15
+        )
+
+    def test_milkmade_hat_can_be_ignored(self):
+        ingredients = ("Naked Nostrils", "Kelp Fronds", "Butter", "Twigs")
+        self.assertEqual(alg.crockpot(ingredients), "Milkmade Hat")
+        self.assertNotEqual(alg.crockpot(ingredients, milkmade=False), "Milkmade Hat")
+        self.assertIn("Milkmade Hat", alg.cookable_dishes(list(ingredients)))
+        self.assertNotIn(
+            "Milkmade Hat", alg.cookable_dishes(list(ingredients), milkmade=False)
+        )
+
+
 class LookupTest(unittest.TestCase):
     def test_stats_are_tuples(self):
         self.assertEqual(alg.get_food_stats("Meatballs"), (62.5, 5.0, 3.0))
@@ -348,6 +423,84 @@ class LookupTest(unittest.TestCase):
         self.assertIn("*Sweetener", conditions)
         self.assertEqual(excludes, "")
         self.assertEqual(priority, 50)
+
+
+class FastPlanTest(unittest.TestCase):
+    """The beam search takes over when the exact search is too large."""
+
+    # A typical early-game backpack: lots of duplicates, but enough kinds that
+    # the exact search would need billions of count vectors.
+    BACKPACK = (
+        ["Berries"] * 12
+        + ["Monster Meat"] * 5
+        + ["Blue Cap"] * 3
+        + ["Red Cap"] * 3
+        + ["Green Cap"] * 2
+        + ["Carrot"] * 4
+        + ["Butterfly Wings"] * 20
+        + ["Drumstick"] * 4
+        + ["Meat"] * 2
+        + ["Twigs"] * 20
+    )
+
+    def test_duplicate_heavy_inventories_stay_exact(self):
+        self.assertFalse(alg.needs_fast_plan(["Meat"] * 20))
+        self.assertFalse(alg.needs_fast_plan(["Meat"] * 8 + ["Ice"] * 8))
+
+    def test_large_mixed_inventory_uses_the_fast_plan(self):
+        self.assertTrue(alg.needs_fast_plan(self.BACKPACK))
+
+    def test_fast_plan_uses_every_item_once(self):
+        total, actions = alg.find_best_plan(self.BACKPACK, "Hunger")
+        self.assertGreaterEqual(total, 1000)
+        self.assertAlmostEqual(alg.plan_totals(actions)["Hunger"], total)
+
+        used = Counter()
+        for action in actions:
+            if action[0] == "cook":
+                used.update(action[1])
+            else:
+                used[action[1]] += 1
+        self.assertEqual(used, Counter(self.BACKPACK))
+
+    def test_fast_plan_finds_the_exact_answer_when_it_is_simple(self):
+        original = alg._EXACT_STATE_LIMIT
+        try:
+            alg._EXACT_STATE_LIMIT = 0
+            total, actions = alg.find_best_plan(["Meat"] * 8, "Hunger")
+        finally:
+            alg._EXACT_STATE_LIMIT = original
+        self.assertEqual(total, 300)
+        self.assertAlmostEqual(alg.plan_totals(actions)["Hunger"], 300)
+        self.assertEqual(sum(1 for action in actions if action[0] == "cook"), 2)
+
+    def test_fast_plan_keeps_food_that_only_loses_stats(self):
+        original = alg._EXACT_STATE_LIMIT
+        try:
+            alg._EXACT_STATE_LIMIT = 0
+            total, actions = alg.find_best_plan(
+                ["Monster Meat"] * 20, "Sanity"
+            )
+        finally:
+            alg._EXACT_STATE_LIMIT = original
+
+        self.assertEqual(total, 0)
+        self.assertEqual([action[0] for action in actions], ["keep"] * 20)
+
+    def test_fast_plan_respects_the_loss_budget(self):
+        original = alg._EXACT_STATE_LIMIT
+        try:
+            alg._EXACT_STATE_LIMIT = 0
+            total, actions = alg.find_best_plan(
+                ["Monster Meat"] * 8 + ["Ice"] * 8, "Hunger"
+            )
+        finally:
+            alg._EXACT_STATE_LIMIT = original
+        totals = alg.plan_totals(actions)
+        self.assertGreaterEqual(totals["Hunger"], 0)
+        self.assertGreaterEqual(totals["Sanity"], 0)
+        self.assertGreaterEqual(totals["Health"], 0)
+        self.assertAlmostEqual(totals["Hunger"], total)
 
 
 class NativeParityTest(unittest.TestCase):

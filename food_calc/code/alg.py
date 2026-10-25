@@ -7,6 +7,9 @@ The engine follows the rules of the Don't Starve Together crockpot:
 * an ingredient is also its own tag, so ``*Asparagus`` matches both
   ``Asparagus`` and ``Cooked Asparagus``.  Processing words such as ``Cooked``,
   ``Roasted`` or ``Prepared`` are ignored when matching;
+* a ``!Name`` condition is stricter: it only matches that exact item, so
+  ``!Drumstick`` rejects Fried Drumstick.  The game uses it for recipes that
+  require an uncooked ingredient;
 * recipe conditions are sums over all four slots and are compared with
   ``>``, ``>=``, ``<``, ``<=``, ``==`` or ``=``;
 * a recipe is rejected if any slot carries an excluded tag;
@@ -18,6 +21,12 @@ Ingredients can also be roasted on a campfire or dried on a drying rack.
 ...).  :func:`find_best_plan` weighs eating raw, roasting, drying and cooking
 four items in the pot.  Dried variants are opt-in because a drying rack is
 much slower than a campfire.
+
+A few foods (``over_time.txt``) restore or drain part of their stats gradually
+instead of on the first bite; that part is counted by default but can be
+skipped with ``over_time=False``.  The Milkmade Hat is not really a meal - it
+is worn as a hat and feeds the player slowly - so it can be excluded from the
+pot entirely with ``milkmade=False``.
 """
 
 from __future__ import annotations
@@ -31,7 +40,7 @@ from functools import lru_cache
 import basic_func
 import cpp_engine
 
-version = "0.5-alpha"
+version = "0.1-beta"
 
 RECIPES = basic_func.file_to_list("recipes.txt")
 WARLY_RECIPES = basic_func.file_to_list("warly_recipes.txt")
@@ -39,9 +48,14 @@ VALUES = basic_func.file_to_list("value.txt")
 STATS = basic_func.file_to_list("food.txt")
 COOKED = basic_func.file_to_list("cooked_table.txt")
 DRIED = basic_func.file_to_list("dried_table.txt")
+OVER_TIME = basic_func.file_to_list("over_time.txt")
 
 STAT_NAMES = ("Hunger", "Sanity", "Health")
 SLOTS = 4
+
+# Milkmade Hat is an equippable head slot item.  The pot can cook it, but it
+# only feeds the player while it is worn, so it is not a normal meal.
+_HAT_DISHES = frozenset({"Milkmade Hat"})
 
 # Prepared dishes cannot be used as crockpot ingredients.  The game also
 # refuses Dead Wobster / Delicious Wobster (a living Wobster is required for
@@ -105,12 +119,19 @@ def _singular(word):
 
 
 def _canonical_tag(tag):
-    """Normalize a tag and resolve known aliases."""
+    """Normalize a tag and resolve known aliases.
+
+    A leading ``!`` marks an exact item name (``!Drumstick``); it is kept in
+    the key so it cannot collide with the normal tags or the implicit name
+    tags, which ignore processing words.
+    """
     tag = tag.strip()
-    if tag.startswith("*"):
+    exact = tag.startswith("!")
+    if exact or tag.startswith("*"):
         tag = tag[1:]
     key = " ".join(_singular(word) for word in _normalize(tag).split())
-    return _TAG_ALIASES.get(key, key)
+    key = _TAG_ALIASES.get(key, key)
+    return "!" + key if exact else key
 
 
 @lru_cache(maxsize=None)
@@ -129,6 +150,12 @@ def _name_forms(name):
 
 
 @lru_cache(maxsize=None)
+def _exact_name(name):
+    """Return the normalized full name, processing words included."""
+    return " ".join(_singular(word) for word in _normalize(name).split())
+
+
+@lru_cache(maxsize=None)
 def ingredient_tags(name):
     """Return ``{tag: weight}`` contributed by one ingredient."""
     tags = {}
@@ -141,6 +168,12 @@ def ingredient_tags(name):
     # value.txt win over the implicit 1.0.
     for form in _name_forms(name):
         tags.setdefault(form, 1.0)
+
+    # ``!Name`` conditions match the exact item only.  The game's recipe tests
+    # look up raw prefabs there, so Fried Drumstick must not count as Drumstick.
+    exact = _exact_name(name)
+    if exact:
+        tags["!" + exact] = 1.0
     return tags
 
 
@@ -188,12 +221,25 @@ def _is_excluded(excludes, tag_maps):
     return False
 
 
-def crockpot(ingredients, warly=False):
+def _active_recipes(warly, milkmade=True):
+    """Return the recipes the pot may use.
+
+    With ``milkmade=False`` the Milkmade Hat recipe is dropped, so the same
+    four items fall through to the next recipe that matches.
+    """
+    recipes = RECIPES + WARLY_RECIPES if warly else RECIPES
+    if milkmade:
+        return recipes
+    return tuple(recipe for recipe in recipes if recipe[0] not in _HAT_DISHES)
+
+
+def crockpot(ingredients, warly=False, milkmade=True):
     """Return the dish produced by exactly four ``ingredients``.
 
     With ``warly=True`` the Portable Crock Pot recipes are included as well.
-    ``None`` means no recipe matched (which should not happen as long as
-    ``Wet Goop`` is in ``recipes.txt``).
+    ``milkmade=False`` leaves out the Milkmade Hat.  ``None`` means no recipe
+    matched (which should not happen as long as ``Wet Goop`` is in
+    ``recipes.txt``).
     """
     ingredients = tuple(ingredients)
     if len(ingredients) != SLOTS:
@@ -202,7 +248,7 @@ def crockpot(ingredients, warly=False):
         return None
 
     tag_maps = [ingredient_tags(name) for name in ingredients]
-    recipes = RECIPES + WARLY_RECIPES if warly else RECIPES
+    recipes = _active_recipes(warly, milkmade)
 
     best_name = None
     best_priority = None
@@ -217,18 +263,18 @@ def crockpot(ingredients, warly=False):
 
 
 @lru_cache(maxsize=None)
-def _cook_cached(ingredients, warly):
-    return crockpot(ingredients, warly)
+def _cook_cached(ingredients, warly, milkmade):
+    return crockpot(ingredients, warly, milkmade)
 
 
-def cook(ingredients, warly=False):
+def cook(ingredients, warly=False, milkmade=True):
     """Cached :func:`crockpot`; the order of the four items does not matter."""
-    return _cook_cached(tuple(sorted(ingredients)), warly)
+    return _cook_cached(tuple(sorted(ingredients)), warly, milkmade)
 
 
-def can_cook(dish, ingredients, warly=False):
+def can_cook(dish, ingredients, warly=False, milkmade=True):
     """Return ``True`` if these four ingredients produce ``dish``."""
-    return len(ingredients) == SLOTS and crockpot(ingredients, warly) == dish
+    return len(ingredients) == SLOTS and crockpot(ingredients, warly, milkmade) == dish
 
 
 def get_cooked_variant(name):
@@ -344,18 +390,18 @@ def _combo_key(combo):
     return _processed_count(combo), combo
 
 
-def cookable_dishes(food_list, warly=False, dried=False):
+def cookable_dishes(food_list, warly=False, dried=False, milkmade=True):
     """Return ``{dish: [combination, ...]}`` for the given inventory.
 
     Combinations include raw, campfire-cooked and (when ``dried`` is true)
-    drying-rack ingredients.  Each dish's combinations are ordered least
-    processed first, so the rawest one is preferred when several produce the
-    same dish.
+    drying-rack ingredients.  With ``milkmade=False`` the Milkmade Hat is not
+    offered.  Each dish's combinations are ordered least processed first, so
+    the rawest one is preferred when several produce the same dish.
     """
     dishes = {}
     for combo in can_comb(food_list):
         for used in _variant_combos(combo, dried):
-            dish = cook(used, warly)
+            dish = cook(used, warly, milkmade)
             if dish is None:
                 continue
             bucket = dishes.setdefault(dish, [])
@@ -366,16 +412,32 @@ def cookable_dishes(food_list, warly=False, dried=False):
     return dishes
 
 
-def get_food_stat(name, stat):
+def get_food_stats(name, over_time=True):
+    """Return ``(hunger, sanity, health)`` or ``None`` if stats are missing.
+
+    ``over_time=False`` subtracts the gradual part listed in ``over_time.txt``
+    and leaves only what the food gives the moment it is eaten.
+    """
+    stats = STATS.get(name)
+    if stats is None or over_time:
+        return stats
+    gradual = OVER_TIME.get(name)
+    if gradual is None:
+        return stats
+    return tuple(value - extra for value, extra in zip(stats, gradual))
+
+
+def get_over_time_stats(name):
+    """Return the gradual part of a food's stats (zero for most foods)."""
+    return OVER_TIME.get(name, (0.0, 0.0, 0.0))
+
+
+def get_food_stat(name, stat, over_time=True):
     """Return one stat of a food item, or ``0`` when it is not in food.txt."""
     if stat not in STAT_NAMES:
         raise ValueError(f"Unknown stat: {stat!r} (expected one of {STAT_NAMES})")
-    return STATS.get(name, (0.0, 0.0, 0.0))[STAT_NAMES.index(stat)]
-
-
-def get_food_stats(name):
-    """Return ``(hunger, sanity, health)`` or ``None`` if stats are missing."""
-    return STATS.get(name)
+    stats = get_food_stats(name, over_time) or (0.0, 0.0, 0.0)
+    return stats[STAT_NAMES.index(stat)]
 
 
 def known_foods():
@@ -418,7 +480,7 @@ def unknown_food_message(names):
 
 
 @lru_cache(maxsize=None)
-def _item_action(name, stat, dried=False):
+def _item_action(name, stat, dried=False, over_time=True):
     """Return ``(value, action)`` for eating one item on its own.
 
     The action is one of ``("keep", name, name)``, ``("eat", name, name)``,
@@ -429,14 +491,14 @@ def _item_action(name, stat, dried=False):
     best_value = 0.0
     best_action = ("keep", name, name)
 
-    raw_value = get_food_stat(name, stat)
+    raw_value = get_food_stat(name, stat, over_time)
     if raw_value > best_value:
         best_value = raw_value
         best_action = ("eat", name, name)
 
     cooked = COOKED.get(name)
     if cooked is not None:
-        cooked_value = get_food_stat(cooked, stat)
+        cooked_value = get_food_stat(cooked, stat, over_time)
         if cooked_value > best_value:
             best_value = cooked_value
             best_action = ("roast", name, cooked)
@@ -444,7 +506,7 @@ def _item_action(name, stat, dried=False):
     if dried:
         dried_name = DRIED.get(name)
         if dried_name is not None:
-            dried_value = get_food_stat(dried_name, stat)
+            dried_value = get_food_stat(dried_name, stat, over_time)
             if dried_value > best_value:
                 best_value = dried_value
                 best_action = ("dry", name, dried_name)
@@ -452,13 +514,13 @@ def _item_action(name, stat, dried=False):
     return best_value, best_action
 
 
-def best_item_action(name, stat="Hunger", dried=False):
+def best_item_action(name, stat="Hunger", dried=False, over_time=True):
     """Return the best way to consume a single item."""
-    return _item_action(name, stat, dried)[1]
+    return _item_action(name, stat, dried, over_time)[1]
 
 
 @lru_cache(maxsize=None)
-def _pot_options(combo, warly, dried=False):
+def _pot_options(combo, warly, dried=False, over_time=True, milkmade=True):
     """Return ``(dish, ingredients, stats)`` for every useful dish this combo makes.
 
     When several raw/cooked/dried variants produce the same dish, the least
@@ -468,17 +530,17 @@ def _pot_options(combo, warly, dried=False):
     """
     by_dish = {}
     for used in _variant_combos(combo, dried):
-        dish = cook(used, warly)
+        dish = cook(used, warly, milkmade)
         if dish is None:
             continue
-        stats = get_food_stats(dish) or (0.0, 0.0, 0.0)
+        stats = get_food_stats(dish, over_time) or (0.0, 0.0, 0.0)
         current = by_dish.get(dish)
         if current is None or _combo_key(used) < _combo_key(current[0]):
             by_dish[dish] = (used, tuple(float(value) for value in stats))
 
     # If eating the four items individually is at least as good in every stat,
     # using the pot for this particular dish cannot help any continuation.
-    individual = [vector for vector, _ in _individual_frontier(combo, dried)]
+    individual = [vector for vector, _ in _individual_frontier(combo, dried, over_time)]
     candidates = []
     for dish, (used, stats) in sorted(by_dish.items()):
         if any(
@@ -510,14 +572,15 @@ def _pot_options(combo, warly, dried=False):
     )
 
 
-def best_single_dish(food_list, stat="Hunger", warly=False, dried=False):
+def best_single_dish(food_list, stat="Hunger", warly=False, dried=False,
+                     over_time=True, milkmade=True):
     """Return ``(score, dish, combination)`` for the best single dish.
 
     Returns ``None`` when nothing can be cooked.
     """
     best = None
-    for dish, combinations in cookable_dishes(food_list, warly, dried).items():
-        score = get_food_stat(dish, stat)
+    for dish, combinations in cookable_dishes(food_list, warly, dried, milkmade).items():
+        score = get_food_stat(dish, stat, over_time)
         if best is None or score > best[0]:
             best = (score, dish, combinations[0])
     return best
@@ -604,17 +667,17 @@ def _pareto(points):
 
 
 @lru_cache(maxsize=None)
-def _individual_options(name, dried=False):
+def _individual_options(name, dried=False, over_time=True):
     """Return ``(stats, action)`` for keeping, eating, roasting or drying one item."""
     options = [((0.0, 0.0, 0.0), ("keep", name, name))]
 
-    stats = get_food_stats(name)
+    stats = get_food_stats(name, over_time)
     if stats is not None:
         options.append((tuple(float(value) for value in stats), ("eat", name, name)))
 
     cooked = COOKED.get(name)
     if cooked is not None:
-        cooked_stats = get_food_stats(cooked)
+        cooked_stats = get_food_stats(cooked, over_time)
         if cooked_stats is not None:
             options.append(
                 (tuple(float(value) for value in cooked_stats), ("roast", name, cooked))
@@ -623,7 +686,7 @@ def _individual_options(name, dried=False):
     if dried:
         dried_name = DRIED.get(name)
         if dried_name is not None:
-            dried_stats = get_food_stats(dried_name)
+            dried_stats = get_food_stats(dried_name, over_time)
             if dried_stats is not None:
                 options.append(
                     (tuple(float(value) for value in dried_stats),
@@ -633,11 +696,11 @@ def _individual_options(name, dried=False):
 
 
 @lru_cache(maxsize=None)
-def _individual_frontier(items, dried=False):
+def _individual_frontier(items, dried=False, over_time=True):
     """Pareto frontier of eating every item in ``items`` individually."""
     points = [((0.0, 0.0, 0.0), ())]
     for item in items:
-        options = _individual_options(item, dried)
+        options = _individual_options(item, dried, over_time)
         points = [
             (_vector_add(vector, option_vector), actions + (action,))
             for vector, actions in points
@@ -654,17 +717,17 @@ def _remove_items(remaining, key):
     return tuple(rest)
 
 
-def _solve_frontier(inventory, warly, dried=False):
+def _solve_frontier(inventory, warly, dried=False, over_time=True, milkmade=True):
     """Return every nondominated plan for ``inventory`` as ``(stats, actions)``."""
     memo = {}
 
     def solve(remaining):
         if not remaining:
-            return _individual_frontier(remaining, dried)
+            return _individual_frontier(remaining, dried, over_time)
         if remaining in memo:
             return memo[remaining]
 
-        points = list(_individual_frontier(remaining, dried))
+        points = list(_individual_frontier(remaining, dried, over_time))
         first = remaining[0]
         rest = remaining[1:]
 
@@ -674,7 +737,7 @@ def _solve_frontier(inventory, warly, dried=False):
         # would miss every plan that leaves the first item out of the pot but
         # cooks some of the remaining items.
         points = []
-        for option_stats, option_action in _individual_options(first):
+        for option_stats, option_action in _individual_options(first, False, over_time):
             for sub_stats, sub_actions in solve(rest):
                 points.append(
                     (
@@ -691,7 +754,7 @@ def _solve_frontier(inventory, warly, dried=False):
             seen.add(key)
 
             sub = solve(_remove_items(remaining, key))
-            for dish, used, dish_stats in _pot_options(key, warly, dried):
+            for dish, used, dish_stats in _pot_options(key, warly, dried, over_time, milkmade):
                 action = ("cook", used, dish)
                 for sub_stats, sub_actions in sub:
                     points.append(
@@ -714,6 +777,293 @@ _NATIVE_MAX_TYPES = 48
 _NATIVE_MAX_PER_TYPE = 255
 _NATIVE_MAX_INSTANCES = 1024
 
+# The exact search keeps every nondominated plan for every count vector, so its
+# work grows with the product of (count + 1).  Beyond this many states a beam
+# search over pot groups is used instead: small and duplicate-heavy inventories
+# stay exact, while a full backpack still answers in a couple of seconds.
+_EXACT_STATE_LIMIT = 2_000_000
+_BEAM_WIDTH = 32
+
+# Rough cap on how many partial plans the beam expands in total.  A wide,
+# varied inventory gets a narrower beam instead of taking minutes.
+_BEAM_WORK = 600_000
+_BEAM_MIN_WIDTH = 8
+
+# Finishing a branch leaves at most a handful of items out of the pot.  Small
+# leftovers are solved exactly; a big pile would make that Pareto search
+# quadratic, so it is consumed greedily instead.
+_LEFTOVER_EXACT = 16
+
+
+def _state_space(inventory):
+    """Estimate the exact search size for ``inventory``, capped at the limit."""
+    counts = {}
+    for name in inventory:
+        counts[name] = counts.get(name, 0) + 1
+    size = 1
+    for count in counts.values():
+        size *= count + 1
+        if size > _EXACT_STATE_LIMIT:
+            break
+    return size
+
+
+def needs_fast_plan(food_list):
+    """Return True when the exact search is too large and beam search is used."""
+    return _state_space(tuple(food_list)) > _EXACT_STATE_LIMIT
+
+
+def _greedy_individual_plan(items, stat_index, allowed, dried, over_time):
+    """Return one good ``(stats, actions)`` for eating ``items``.
+
+    Every item starts with its best individual use for the chosen stat; items
+    are then switched (usually to keeping them) until no stat is below its
+    allowed loss.  If the switches cannot get there, everything is kept: that
+    is always allowed, so a feasible branch is never thrown away.  The result
+    is only a heuristic, but it runs in linear time and is used for the large
+    leftovers of a beam search, where the exact frontier would be quadratic.
+    """
+    options = [_individual_options(name, dried, over_time) for name in items]
+    chosen = [
+        max(
+            candidates,
+            key=lambda option: (
+                option[0][stat_index], option[0][2], option[0][1]
+            ),
+        )
+        for candidates in options
+    ]
+    totals = [
+        sum(option[0][index] for option in chosen)
+        for index in range(len(STAT_NAMES))
+    ]
+
+    for _ in range(len(items) * len(STAT_NAMES)):
+        deficits = [
+            -allowed[name] - totals[index]
+            for index, name in enumerate(STAT_NAMES)
+        ]
+        worst = max(range(len(deficits)), key=deficits.__getitem__)
+        if deficits[worst] <= 1e-9:
+            break
+
+        # Switch the item that gains the most in the missing stat, breaking
+        # ties by the smallest loss in the chosen stat.
+        best = None
+        for index, candidates in enumerate(options):
+            current = chosen[index][0]
+            for option in candidates:
+                gain = option[0][worst] - current[worst]
+                if gain <= 1e-9:
+                    continue
+                cost = current[stat_index] - option[0][stat_index]
+                key = (gain, -cost)
+                if best is None or key > best[0]:
+                    best = (key, index, option)
+        if best is None:
+            break
+        _, index, option = best
+        for index_stat in range(len(STAT_NAMES)):
+            totals[index_stat] += (
+                option[0][index_stat] - chosen[index][0][index_stat]
+            )
+        chosen[index] = option
+
+    if any(
+        totals[index] < -allowed[name] - 1e-9
+        for index, name in enumerate(STAT_NAMES)
+    ):
+        # Keeping every item is always within the loss budget, so use that
+        # instead of reporting that these leftovers cannot be finished.
+        return (0.0, 0.0, 0.0), tuple(
+            ("keep", name, name) for name in items
+        )
+    return tuple(totals), tuple(option[1] for option in chosen)
+
+
+def _complete_individuals(items, stat_index, allowed, dried, over_time,
+                          exact=True):
+    """Yield ``(stats, actions)`` completions for ``items`` used individually.
+
+    ``exact=False`` always uses the greedy plan, even for a small pile; the
+    beam uses that for intermediate states, where the exact frontier would
+    dominate the running time.
+    """
+    if exact and len(items) <= _LEFTOVER_EXACT:
+        return _individual_frontier(items, dried, over_time)
+    return (
+        _greedy_individual_plan(items, stat_index, allowed, dried, over_time),
+    )
+
+
+def _beam_plan(inventory, stat_index, allowed, warly, dried=False,
+               over_time=True, milkmade=True):
+    """Return ``(total_score, actions)`` from a beam search over pot groups.
+
+    A backpack with many different items makes the exact search explode, so
+    this keeps only the most promising partial plans (at most ``_BEAM_WIDTH``,
+    fewer for very varied inventories) after every pot.  Plans are ranked by
+    the chosen stat plus the best individual use of what is left.  Each kept
+    plan is finished by eating its leftovers individually - exactly for a
+    small pile, greedily for a large one - so the result is always a valid
+    plan that uses every item at most once; it may miss the exact optimum, but
+    it always answers quickly.
+    """
+    counts = Counter(inventory)
+    types = tuple(sorted(counts))
+    start = tuple(counts[name] for name in types)
+
+    # Every 4-item multiset of types that can make a useful dish, together with
+    # how many items of each type it consumes.
+    groups = []
+    for quad in itertools.combinations_with_replacement(range(len(types)), SLOTS):
+        options = _pot_options(
+            tuple(types[index] for index in quad), warly, dried, over_time,
+            milkmade,
+        )
+        if not options:
+            continue
+        needed = []
+        for index in quad:
+            if needed and needed[-1][0] == index:
+                needed[-1][1] += 1
+            else:
+                needed.append([index, 1])
+        groups.append((tuple((index, count) for index, count in needed), options))
+
+    # Best individual value of each type, per stat.  The chosen-stat column
+    # ranks partial plans; all three bound what is still possible, so plainly
+    # infeasible branches can be skipped before finishing them.
+    best_stats = [
+        tuple(
+            max(
+                vector[index]
+                for vector, _ in _individual_options(name, dried, over_time)
+            )
+            for index in range(len(STAT_NAMES))
+        )
+        for name in types
+    ]
+    best_by_stat = (
+        list(zip(*best_stats))
+        if best_stats
+        else [() for _ in STAT_NAMES]
+    )
+
+    # A very wide choice of groups would make a full-width beam crawl, so
+    # narrow it when the estimated number of expansions gets too large.
+    layers = len(inventory) // SLOTS
+    width = _BEAM_WIDTH
+    if groups and layers:
+        width = max(
+            _BEAM_MIN_WIDTH,
+            min(width, _BEAM_WORK // (len(groups) * layers)),
+        )
+
+    def potential(remaining, vector):
+        return vector[stat_index] + sum(
+            count * value
+            for count, value in zip(remaining, best_by_stat[stat_index])
+        )
+
+    zero = (0.0, 0.0, 0.0)
+    beam = [(start, zero, ())]
+    finished = []
+    visited = []
+    leaders = []
+    for _ in range(layers):
+        candidates = []
+        for remaining, vector, actions in beam:
+            grown = False
+            for needed, options in groups:
+                if any(remaining[index] < count for index, count in needed):
+                    continue
+                rest = list(remaining)
+                for index, count in needed:
+                    rest[index] -= count
+                key = tuple(rest)
+                for dish, used, stats in options:
+                    candidates.append(
+                        (key, _vector_add(vector, stats),
+                         actions + (("cook", used, dish),))
+                    )
+                    grown = True
+            if not grown:
+                finished.append((remaining, vector, actions))
+        if not candidates:
+            break
+
+        grouped = {}
+        for key, vector, actions in candidates:
+            grouped.setdefault(key, []).append((vector, actions))
+        beam = []
+        for key, points in grouped.items():
+            for vector, actions in _pareto(points):
+                beam.append((key, vector, actions))
+        beam.sort(
+            key=lambda state: (
+                potential(state[0], state[1]), state[1][2], state[1][1]
+            ),
+            reverse=True,
+        )
+        del beam[width:]
+        visited.extend(beam)
+        leaders.extend(beam[:4])
+
+    best = None
+
+    def consider(remaining, vector, actions, exact=True):
+        nonlocal best
+        if (
+            best is not None
+            and potential(remaining, vector) < best[1][stat_index] - 1e-9
+        ):
+            return
+        if any(
+            vector[index]
+            + sum(
+                count * value
+                for count, value in zip(remaining, best_by_stat[index])
+            )
+            < -allowed[name] - 1e-9
+            for index, name in enumerate(STAT_NAMES)
+        ):
+            return
+        leftover = tuple(
+            name for name, count in zip(types, remaining) for _ in range(count)
+        )
+        for individual_vector, individual_actions in _complete_individuals(
+            leftover, stat_index, allowed, dried, over_time, exact
+        ):
+            total = _vector_add(vector, individual_vector)
+            if any(
+                total[index] < -allowed[name] - 1e-9
+                for index, name in enumerate(STAT_NAMES)
+            ):
+                continue
+            plan = actions + individual_actions
+            key = (total[stat_index], total[2], total[1], -len(plan))
+            if best is None or key > best[0]:
+                best = (key, total, plan)
+
+    # Finishing a full beam exactly is cheap, so start with the most potent
+    # plans.  Earlier stops are only suggestions: completing their larger
+    # leftovers greedily keeps the search fast without losing the big wins.
+    for state in beam:
+        consider(*state)
+    for state in finished:
+        consider(*state)
+    for state in leaders:
+        consider(*state)
+    for state in visited:
+        consider(*state, exact=False)
+    consider(start, zero, ())
+
+    if best is None:
+        # Keeping everything is always feasible.
+        return 0.0, [("keep", item, item) for item in inventory]
+    return best[1][stat_index], list(best[2])
+
 
 def _type_combos(counts, size, start=0, chosen=()):
     """Yield ``size`` type indices (ascending, repeats allowed) with counts."""
@@ -727,7 +1077,7 @@ def _type_combos(counts, size, start=0, chosen=()):
             counts[t] += 1
 
 
-def _native_task(inventory, warly, dried=False):
+def _native_task(inventory, warly, dried=False, over_time=True, milkmade=True):
     """Build the flat arrays for the native engine, or None outside its limits.
 
     Returns ``(task, types, dish_names, used_by)``: ``task`` packs stats and
@@ -748,7 +1098,7 @@ def _native_task(inventory, warly, dried=False):
     ind_kind = []
     ind_stats = []
     for name in types:
-        for vector, action in _individual_options(name, dried):
+        for vector, action in _individual_options(name, dried, over_time):
             ind_kind.append(cpp_engine.ACTION_KINDS[action[0]])
             ind_stats.extend(float(value) for value in vector)
         ind_off.append(len(ind_kind))
@@ -774,7 +1124,7 @@ def _native_task(inventory, warly, dried=False):
 
     for combo in _type_combos(types_with_counts, 4):
         names = tuple(types[t] for t in combo)
-        options = _pot_options(names, warly, dried)
+        options = _pot_options(names, warly, dried, over_time, milkmade)
         pot_keys.extend(combo)
         for dish, used, stats in options:
             pot_dish.append(dish_id(dish))
@@ -788,14 +1138,15 @@ def _native_task(inventory, warly, dried=False):
     return task, types, dish_names, used_by
 
 
-def _native_plan(inventory, stat_index, allowed, warly, dried=False):
+def _native_plan(inventory, stat_index, allowed, warly, dried=False,
+                 over_time=True, milkmade=True):
     """Return ``(total, actions)`` from the native engine, or None."""
     import cpp_engine
 
     if not cpp_engine.available():
         return None
 
-    built = _native_task(inventory, warly, dried)
+    built = _native_task(inventory, warly, dried, over_time, milkmade)
     if built is None:
         return None
     task, types, dish_names, used_by = built
@@ -829,14 +1180,16 @@ def _native_plan(inventory, stat_index, allowed, warly, dried=False):
 
 
 def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
-                   dried=False):
+                   dried=False, over_time=True, milkmade=True):
     """Return ``(total_score, actions)`` for the best use of the inventory.
 
     Every item is either eaten raw, roasted on a campfire, dried on a drying
     rack (only when ``dried`` is true), kept because it would be harmful, or
     grouped with three others into a crockpot dish.  ``losses`` limits how far
     the final totals may drop below zero for each stat; the default
-    ``0, 0, 0`` forbids any net loss.
+    ``0, 0, 0`` forbids any net loss.  ``over_time=False`` counts only the
+    stats a food gives on the first bite, and ``milkmade=False`` keeps the
+    Milkmade Hat out of the pot.
     """
     if stat not in STAT_NAMES:
         raise ValueError(f"Unknown stat: {stat!r} (expected one of {STAT_NAMES})")
@@ -844,14 +1197,21 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
     allowed = normalize_losses(losses)
     inventory = tuple(sorted(food_list))
 
+    if needs_fast_plan(inventory):
+        return _beam_plan(
+            inventory, STAT_NAMES.index(stat), allowed, warly, dried,
+            over_time, milkmade,
+        )
+
     if _USE_NATIVE:
         native = _native_plan(
-            inventory, STAT_NAMES.index(stat), allowed, warly, dried
+            inventory, STAT_NAMES.index(stat), allowed, warly, dried,
+            over_time, milkmade,
         )
         if native is not None:
             return native
 
-    points = _solve_frontier(inventory, warly, dried)
+    points = _solve_frontier(inventory, warly, dried, over_time, milkmade)
 
     feasible = [
         point
@@ -876,7 +1236,7 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
     return vector[index], _expand_prep(actions, inventory)
 
 
-def plan_totals(actions):
+def plan_totals(actions, over_time=True):
     """Return ``{stat: total}`` for the food produced by a plan."""
     totals = {stat: 0.0 for stat in STAT_NAMES}
     for action in actions:
@@ -884,7 +1244,7 @@ def plan_totals(actions):
         # for the pot; neither contributes to the plan's totals.
         if action[0] in ("keep", "prep"):
             continue
-        stats = get_food_stats(action[2]) or (0.0, 0.0, 0.0)
+        stats = get_food_stats(action[2], over_time) or (0.0, 0.0, 0.0)
         for stat, value in zip(STAT_NAMES, stats):
             totals[stat] += value
     return totals
@@ -929,6 +1289,18 @@ def data_warnings():
             warnings.append(
                 f"dried_table.txt: {raw!r} -> {dried!r} has no stats in food.txt"
             )
+
+    for name, gradual in OVER_TIME.items():
+        total = STATS.get(name)
+        if total is None:
+            warnings.append(f"over_time.txt: {name!r} has no stats in food.txt")
+            continue
+        for stat, extra, value in zip(STAT_NAMES, gradual, total):
+            if abs(extra) > abs(value) + 1e-9:
+                warnings.append(
+                    f"over_time.txt: {name!r} changes more {stat.lower()} over "
+                    f"time ({extra:g}) than food.txt lists ({value:g})"
+                )
 
     provided = set()
     ingredients = set(VALUES) | (set(STATS) - set(dishes))

@@ -8,10 +8,14 @@
     form: $("#planner"),
     ingredients: $("#ingredients"),
     itemCount: $("#item-count"),
+    maxIngredients: $("#max-ingredients"),
+    maxTypes: $("#max-types"),
     sample: $("#sample"),
     statButtons: $$(".segmented button"),
     warly: $("#warly"),
     ignoreDried: $("#ignore-dried"),
+    ignoreMilkmade: $("#ignore-milkmade"),
+    ignoreOverTime: $("#ignore-over-time"),
     lossHunger: $("#loss-hunger"),
     lossSanity: $("#loss-sanity"),
     lossHealth: $("#loss-health"),
@@ -26,6 +30,7 @@
     totalChips: $("#total-chips"),
     lossSummary: $("#loss-summary"),
     planSteps: $("#plan-steps"),
+    planMode: $("#plan-mode"),
     bestCard: $("#best-card"),
     bestName: $("#best-name"),
     bestStats: $("#best-stats"),
@@ -75,6 +80,22 @@
       .filter(Boolean);
     const label = names.length === 1 ? "1 item" : `${names.length} items`;
     els.itemCount.textContent = label;
+  }
+
+  async function loadServerConfig() {
+    try {
+      const response = await fetch("/api/foods");
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Number.isFinite(data.maxIngredients)) {
+        els.maxIngredients.textContent = String(data.maxIngredients);
+      }
+      if (Number.isFinite(data.maxIngredientTypes)) {
+        els.maxTypes.textContent = String(data.maxIngredientTypes);
+      }
+    } catch (error) {
+      // Keep the static fallback from index.html.
+    }
   }
 
   function setStat(stat) {
@@ -140,6 +161,8 @@
           stat: state.stat,
           warly: els.warly.checked,
           ignoreDried: els.ignoreDried.checked,
+          ignoreMilkmade: els.ignoreMilkmade.checked,
+          ignoreOverTime: els.ignoreOverTime.checked,
           losses: lossesPayload(),
         }),
       });
@@ -297,11 +320,18 @@
 
     const steps = data.plan.length;
     const items = data.ingredients.length;
+    els.planMode.textContent = data.exact ? "exhaustive" : "beam search";
+    els.planMode.title = data.exact
+      ? "Every combination was searched."
+      : "Approximate: only the most promising branches were searched.";
     els.planMeta.textContent =
       `${steps} step${steps === 1 ? "" : "s"} · ` +
       `${items} ingredient${items === 1 ? "" : "s"} · ` +
       (data.warly ? "Warly recipes included" : "standard recipes") +
       (data.dried ? " · drying rack enabled" : "") +
+      (data.milkmade ? " · Milkmade Hat allowed" : "") +
+      (data.overTime ? " · over-time stats counted" : "") +
+      (data.exact ? "" : " · beam search (approximate)") +
       ` · ${data.engine === "C++" ? "C++" : "Python"} engine`;
 
     fillChips(els.totalChips, data.totals);
@@ -359,8 +389,11 @@
   els.form.addEventListener("submit", calculate);
   els.warly.addEventListener("change", clearError);
   els.ignoreDried.addEventListener("change", clearError);
+  els.ignoreMilkmade.addEventListener("change", clearError);
+  els.ignoreOverTime.addEventListener("change", clearError);
   els.ingredients.addEventListener("input", clearError);
 
   setStat(state.stat);
   countIngredients();
+  loadServerConfig();
 })();

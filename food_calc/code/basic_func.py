@@ -6,14 +6,16 @@ line.  Blank lines are ignored, so trailing newlines and spacing are harmless.
 Record formats
 --------------
 food.txt         ``Name: hunger, sanity, health``
+over_time.txt    ``Name: hunger, sanity, health`` (the gradual part of the stats)
 value.txt        ``Ingredient: *Tag - weight, *Tag - weight, ...``
 recipes.txt      ``Dish; conditions; excludes; priority``
 cooked_table.txt ``Raw: Cooked``
 dried_table.txt  ``Raw: Dried``
 
 Conditions are ``<op> <number> <tag>`` separated by ``,`` (``>= 1.0 *Meat``).
-Excludes are bare tags separated by ``,`` (``*Meat, Twigs``).  An empty field
-means "none".
+A ``!`` before an ingredient name matches the raw item only (``!Drumstick``),
+so cooked variants do not count.  Excludes are bare tags separated by ``,``
+(``*Meat, Twigs``).  An empty field means "none".
 """
 
 from pathlib import Path
@@ -71,6 +73,7 @@ def file_to_list(file_name):
     """Load one of the data files into the structure the engine expects.
 
     * ``food.txt``         -> ``{name: (hunger, sanity, health)}``
+    * ``over_time.txt``    -> ``{name: (hunger, sanity, health)}``
     * ``value.txt``        -> ``{ingredient: {tag: weight}}``
     * ``recipes.txt``      -> ``[(name, conditions, excludes, priority)]``
     * ``warly_recipes.txt``-> ``[(name, conditions, excludes, priority)]``
@@ -79,6 +82,7 @@ def file_to_list(file_name):
     """
     parsers = {
         "food.txt": (parse_food_line, dict),
+        "over_time.txt": (parse_food_line, dict),
         "value.txt": (parse_value_line, dict),
         "recipes.txt": (parse_recipe_line, list),
         "warly_recipes.txt": (parse_recipe_line, list),
