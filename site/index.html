@@ -44,7 +44,8 @@
         <textarea id="ingredients" name="ingredients" spellcheck="false"
           placeholder="Meat&#10;Meat&#10;Meat&#10;Ice&#10;Meat"></textarea>
         <div class="ingredient-hint">
-          <span>One per line, up to 20. Duplicates matter.</span>
+          <span>One per line, up to <span id="max-ingredients">100</span> items and
+            <span id="max-types">24</span> kinds. Duplicates matter.</span>
           <button type="button" id="sample" class="link-button">Load example</button>
         </div>
       </section>
@@ -79,6 +80,24 @@
             <span class="switch-sub">Default: on &middot; skip Jerky and dried kelp</span>
           </span>
           <input type="checkbox" id="ignore-dried" name="ignore-dried" checked>
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+
+        <label class="switch-row">
+          <span>
+            <span class="switch-title">Ignore Milkmade Hat</span>
+            <span class="switch-sub">Default: on &middot; it is worn, not eaten</span>
+          </span>
+          <input type="checkbox" id="ignore-milkmade" name="ignore-milkmade" checked>
+          <span class="switch" aria-hidden="true"></span>
+        </label>
+
+        <label class="switch-row">
+          <span>
+            <span class="switch-title">Ignore over time stats</span>
+            <span class="switch-sub">Default: on &middot; only instant stat gains</span>
+          </span>
+          <input type="checkbox" id="ignore-over-time" name="ignore-over-time" checked>
           <span class="switch" aria-hidden="true"></span>
         </label>
 
@@ -132,7 +151,7 @@
         <section class="card plan-card">
           <div class="card-head">
             <h2>Plan</h2>
-            <span class="pill">exhaustive</span>
+            <span id="plan-mode" class="pill">exhaustive</span>
           </div>
           <ol id="plan-steps" class="steps"></ol>
         </section>
@@ -173,7 +192,8 @@
         <p>
           Eating raw, roasting first, drying on a rack (unless ignored), keeping
           an item, or cooking four items in the pot. Plans are checked as a
-          whole, not dish by dish.
+          whole, not dish by dish. Slow, over-time stat gains are skipped
+          unless enabled.
         </p>
       </div>
     </section>

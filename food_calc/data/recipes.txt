@@ -65,8 +65,8 @@ Surf 'n' Turf; >= 2.5 *Meat, >= 1.5 *Fish; *Ice; 30
 Taffy; >= 3.0 *Sweetener; *Meat; 10
 Tall Scotch Eggs; >= 1.0 Tallbird Egg, >= 1.0 *Vegetable; ; 10
 Trail Mix; >= 1.0 *Birchnut, >= 1.0 *Berry, >= 1.0 *Fruit; *Meat, *Egg, *Vegetable, *Dairy; 10
-Turkey Dinner; >= 2.0 Drumstick, > 1.0 *Meat, >= 0.5 *Fruit; ; 10
-Turkey Dinner; >= 2.0 Drumstick, > 1.0 *Meat, >= 0.5 *Vegetable; ; 10
+Turkey Dinner; >= 2.0 !Drumstick, > 1.0 *Meat, >= 0.5 *Fruit; ; 10
+Turkey Dinner; >= 2.0 !Drumstick, > 1.0 *Meat, >= 0.5 *Vegetable; ; 10
 Unagi; >= 1.0 *Eel, >= 1.0 Lichen; ; 20
 Unagi; >= 1.0 *Eel, >= 1.0 *Kelp Fronds; ; 20
 Veggie Burger; >= 1.0 *Leafy Meat, >= 1.0 *Onion, >= 2.0 *Vegetable; ; 25

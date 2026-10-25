@@ -47,8 +47,8 @@ def resolve_names(names):
     return resolved, unknown
 
 
-def format_stats(dish):
-    stats = alg.get_food_stats(dish)
+def format_stats(dish, over_time=True):
+    stats = alg.get_food_stats(dish, over_time)
     if stats is None:
         return "stats unknown"
     hunger, sanity, health = stats
@@ -101,6 +101,16 @@ def main(argv=None):
         help="use drying-rack variants (Jerky, dried kelp, ...)",
     )
     parser.add_argument(
+        "--over-time",
+        action="store_true",
+        help="count stats a food gives gradually (Soothing Tea, Jellybeans, ...)",
+    )
+    parser.add_argument(
+        "--milkmade",
+        action="store_true",
+        help="allow the Milkmade Hat, which is worn rather than eaten",
+    )
+    parser.add_argument(
         "--loss-hunger",
         type=non_negative,
         default=0.0,
@@ -145,24 +155,32 @@ def main(argv=None):
         )
         return 1
 
-    dishes = alg.cookable_dishes(ingredients, args.warly, args.dried)
+    dishes = alg.cookable_dishes(
+        ingredients, args.warly, args.dried, args.milkmade
+    )
     if not dishes:
         print("Nothing can be cooked from these ingredients.")
     else:
         ranking = sorted(
             dishes,
-            key=lambda dish: (-alg.get_food_stat(dish, args.stat), dish),
+            key=lambda dish: (
+                -alg.get_food_stat(dish, args.stat, args.over_time),
+                dish,
+            ),
         )
         print(f"Cookable dishes ({len(ranking)}):")
         for dish in ranking:
-            score = alg.get_food_stat(dish, args.stat)
+            score = alg.get_food_stat(dish, args.stat, args.over_time)
             print(
-                f"  {dish}: {format_stats(dish)}"
+                f"  {dish}: {format_stats(dish, args.over_time)}"
                 f"  [{args.stat.lower()} {score:g},"
                 f" {len(dishes[dish])} combination(s)]"
             )
 
-    best = alg.best_single_dish(ingredients, args.stat, args.warly, args.dried)
+    best = alg.best_single_dish(
+        ingredients, args.stat, args.warly, args.dried,
+        args.over_time, args.milkmade,
+    )
     if best is not None:
         score, dish, combo = best
         print()
@@ -181,9 +199,17 @@ def main(argv=None):
             "Health": args.loss_health,
         },
         dried=args.dried,
+        over_time=args.over_time,
+        milkmade=args.milkmade,
     )
-    totals = alg.plan_totals(actions)
+    totals = alg.plan_totals(actions, args.over_time)
     print()
+    if alg.needs_fast_plan(ingredients):
+        print(
+            "note: this inventory is too large for the exhaustive search; "
+            "the plan comes from the fast beam search and may miss the "
+            "exact optimum."
+        )
     print(f"Best plan by {args.stat} (total {total:g}):")
     for action in actions:
         if action[0] == "keep":
@@ -191,7 +217,10 @@ def main(argv=None):
         elif action[0] == "prep":
             print(f"  {alg.describe_action(action)}")
         else:
-            print(f"  {alg.describe_action(action)}: {format_stats(action[2])}")
+            print(
+                f"  {alg.describe_action(action)}: "
+                f"{format_stats(action[2], args.over_time)}"
+            )
     print(
         "  totals: "
         + ", ".join(f"{stat.lower()} {value:g}" for stat, value in totals.items())
