@@ -200,17 +200,20 @@ food_calc/
     dried_table.txt   drying rack raw -> dried conversions
     over_time.txt     gradual part of a food's stats
     warly_recipes.txt Warly's Portable Crock Pot recipes
+    picker_order.txt  ingredient order used by the website picker
 site/
   index.html        calculator page
   styles.css        page theme
   app.js            form handling and result rendering
   i18n.js           English and Russian interface strings
   names_ru.json     English-to-Russian food names
+  icons/            64x64 ingredient icons for the picker
   server.py         local web server and JSON API
   test_site.py      tests for the website API
 tools/
   build_engine.py   compile food_calc/native/engine.cpp
   fetch_compiler.py download a portable MinGW-w64 g++ (Windows)
+  fetch_food_icons.py download the picker icons from the Don't Starve wiki
 ```
 
 ## Data format

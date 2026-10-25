@@ -290,7 +290,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(
                 HTTPStatus.OK,
                 {
-                    "foods": alg.known_foods(),
+                    "foods": alg.picker_foods(),
                     "stats": list(STAT_KEYS),
                     "maxIngredients": MAX_INGREDIENTS,
                     "maxIngredientTypes": MAX_INGREDIENT_TYPES,

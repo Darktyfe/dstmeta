@@ -8,7 +8,11 @@
 
   const els = {
     form: $("#planner"),
-    ingredients: $("#ingredients"),
+    picker: $("#ingredient-picker"),
+    pickerEmpty: $("#picker-empty"),
+    pickerMessage: $("#picker-message"),
+    search: $("#ingredient-search"),
+    clearPicker: $("#clear-picker"),
     itemCount: $("#item-count"),
     maxIngredients: $("#max-ingredients"),
     maxTypes: $("#max-types"),
@@ -50,6 +54,13 @@
     loading: false,
     data: null,
     errorKey: null,
+    foods: [],
+    counts: new Map(),
+    tileRefs: new Map(),
+    loaded: false,
+    loadFailed: false,
+    maxIngredients: 100,
+    maxTypes: 24,
   };
 
   const STAT_KEYS = ["Hunger", "Sanity", "Health"];
@@ -65,6 +76,8 @@
     keep: "verbKeep",
     prep: "verbPrep",
   };
+
+  const SAMPLE = ["Meat", "Meat", "Meat", "Ice", "Meat"];
 
   let ruNames = null;
 
@@ -157,14 +170,198 @@
     if (!ruNames) ruNames = {};
     return ruNames;
   }
+  function iconSlug(name) {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function totalItems() {
+    let total = 0;
+    state.counts.forEach((count) => {
+      total += count;
+    });
+    return total;
+  }
 
   function countIngredients() {
-    const names = els.ingredients.value
-      .split(/[\n,]/)
-      .map((name) => name.trim())
-      .filter(Boolean);
-    els.itemCount.textContent =
-      `${names.length} ${countWord(names.length, "item")}`;
+    const total = totalItems();
+    els.itemCount.textContent = `${total} ${countWord(total, "item")}`;
+  }
+
+  function serializeIngredients() {
+    const names = [];
+    state.counts.forEach((count, name) => {
+      for (let index = 0; index < count; index += 1) names.push(name);
+    });
+    return names.join("\n");
+  }
+
+  function setPickerMessage(text) {
+    els.pickerMessage.textContent = text || "";
+    els.pickerMessage.hidden = !text;
+  }
+
+  function refreshTile(name) {
+    const ref = state.tileRefs.get(name);
+    if (!ref) return;
+    const count = state.counts.get(name) || 0;
+    ref.tile.classList.toggle("selected", count > 0);
+    ref.badge.textContent = String(count);
+    ref.badge.hidden = count === 0;
+    ref.badge.title = t("pickerRemove", { name: foodName(name), count });
+    ref.badge.setAttribute("aria-label", ref.badge.title);
+    ref.add.title = foodName(name);
+    ref.add.setAttribute("aria-label", t("pickerAdd", { name: foodName(name) }));
+  }
+
+  function refreshAllTiles() {
+    state.tileRefs.forEach((_, name) => refreshTile(name));
+  }
+
+  function applyFilter() {
+    const query = (els.search.value || "").trim().toLowerCase();
+    let matches = 0;
+    state.tileRefs.forEach((ref, name) => {
+      const localised = (ruNames && ruNames[name]) || "";
+      const haystack = `${name}\n${localised}`.toLowerCase();
+      const visible = !query || haystack.includes(query);
+      ref.tile.hidden = !visible;
+      if (visible) matches += 1;
+    });
+    els.pickerEmpty.hidden = !query || matches > 0;
+  }
+
+  function refreshPickerLabels() {
+    refreshAllTiles();
+    applyFilter();
+  }
+
+  function addIngredient(name) {
+    if (totalItems() >= state.maxIngredients) {
+      setPickerMessage(t("pickerLimitItems", { max: state.maxIngredients }));
+      return;
+    }
+    const count = state.counts.get(name) || 0;
+    if (count === 0 && state.counts.size >= state.maxTypes) {
+      setPickerMessage(t("pickerLimitTypes", { max: state.maxTypes }));
+      return;
+    }
+    state.counts.set(name, count + 1);
+    setPickerMessage("");
+    refreshTile(name);
+    countIngredients();
+    clearError();
+  }
+
+  function removeIngredient(name) {
+    const count = state.counts.get(name) || 0;
+    if (count <= 0) return;
+    if (count === 1) state.counts.delete(name);
+    else state.counts.set(name, count - 1);
+    setPickerMessage("");
+    refreshTile(name);
+    countIngredients();
+    clearError();
+  }
+
+  function clearIngredients() {
+    state.counts.clear();
+    setPickerMessage("");
+    refreshAllTiles();
+    countIngredients();
+    clearError();
+  }
+
+  function loadSample() {
+    if (!state.loaded) return;
+    state.counts.clear();
+    SAMPLE.forEach((name) => {
+      state.counts.set(name, (state.counts.get(name) || 0) + 1);
+    });
+    setPickerMessage("");
+    refreshAllTiles();
+    countIngredients();
+    clearError();
+    setStat("Hunger");
+  }
+
+  function tileNode(name) {
+    const tile = el("div", "ingredient-tile");
+    tile.dataset.food = name;
+
+    const add = el("button", "tile-add");
+    add.type = "button";
+    add.title = foodName(name);
+    add.setAttribute("aria-label", t("pickerAdd", { name: foodName(name) }));
+
+    const image = document.createElement("img");
+    image.className = "tile-icon";
+    image.src = `icons/${iconSlug(name)}.png`;
+    image.alt = "";
+    image.width = 64;
+    image.height = 64;
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.addEventListener("error", () => {
+      image.remove();
+      add.classList.add("tile-add-missing");
+      add.append(el("span", "tile-fallback", "?"));
+    });
+    add.append(image);
+
+    add.addEventListener("click", () => addIngredient(name));
+    add.addEventListener("keydown", (event) => {
+      if (event.key === "Backspace" || event.key === "Delete" || event.key === "-") {
+        event.preventDefault();
+        removeIngredient(name);
+      }
+    });
+
+    const badge = el("button", "tile-count");
+    badge.type = "button";
+    badge.hidden = true;
+    badge.textContent = "0";
+    badge.addEventListener("click", (event) => {
+      event.stopPropagation();
+      removeIngredient(name);
+    });
+
+    tile.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      removeIngredient(name);
+    });
+
+    tile.append(add, badge);
+    state.tileRefs.set(name, { tile, add, badge });
+    refreshTile(name);
+    return tile;
+  }
+
+  function buildPicker() {
+    clear(els.picker);
+    state.tileRefs.clear();
+
+    const grid = el("div", "ingredient-grid");
+    state.foods.forEach((name) => grid.append(tileNode(name)));
+    els.picker.append(grid);
+
+    applyFilter();
+    countIngredients();
+  }
+
+  function showPickerLoadError() {
+    state.loadFailed = true;
+    clear(els.picker);
+    const message = el("p", "picker-load-error");
+    message.append(document.createTextNode(t("pickerLoadFailed") + " "));
+    const retry = el("button", "link-button", t("pickerRetry"));
+    retry.type = "button";
+    retry.addEventListener("click", loadFoods);
+    message.append(retry);
+    els.picker.append(message);
+    els.pickerEmpty.hidden = true;
   }
 
   function applyLanguage(lang) {
@@ -197,6 +394,83 @@
     });
 
     countIngredients();
+
+    // Re-render picker state in the new language.
+    if (state.loadFailed) {
+      showPickerLoadError();
+    } else {
+      refreshPickerLabels();
+    }
+  }
+
+  async function switchLanguage(lang) {
+    if (lang === state.lang) return;
+    if (!state.errorKey) clearError();
+    if (lang === "ru") {
+      await loadRuNames();
+    }
+    applyLanguage(lang);
+  }
+
+  async function loadFoods() {
+    state.loadFailed = false;
+    clear(els.picker);
+    els.picker.append(el("p", "picker-loading", t("pickerLoading")));
+    els.pickerEmpty.hidden = true;
+    try {
+      const response = await fetch("/api/foods", { cache: "no-store" });
+      if (!response.ok) throw new Error("foods");
+      const data = await response.json();
+      state.foods = Array.isArray(data.foods) ? data.foods.slice() : [];
+      if (Number.isFinite(data.maxIngredients)) {
+        state.maxIngredients = data.maxIngredients;
+        els.maxIngredients.textContent = String(data.maxIngredients);
+      }
+      if (Number.isFinite(data.maxIngredientTypes)) {
+        state.maxTypes = data.maxIngredientTypes;
+        els.maxTypes.textContent = String(data.maxIngredientTypes);
+      }
+      state.loaded = true;
+      buildPicker();
+    } catch (error) {
+      state.loaded = false;
+      showPickerLoadError();
+    }
+  }
+
+  function applyLanguage(lang) {
+    state.lang = lang === "ru" ? "ru" : "en";
+    try {
+      localStorage.setItem("dstmeta.lang", state.lang);
+    } catch (error) {
+      // Storage may be unavailable; the switch still works for this page.
+    }
+
+    document.documentElement.lang = state.lang;
+    document.title = t("title");
+    const description = document.querySelector('meta[name="description"]');
+    if (description) description.setAttribute("content", t("metaDescription"));
+
+    $$("[data-i18n]").forEach((node) => {
+      node.textContent = t(node.dataset.i18n);
+    });
+    $$("[data-i18n-placeholder]").forEach((node) => {
+      node.placeholder = t(node.dataset.i18nPlaceholder);
+    });
+    $$("[data-i18n-aria-label]").forEach((node) => {
+      node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+    });
+
+    els.langButtons.forEach((button) => {
+      const active = button.dataset.lang === state.lang;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    countIngredients();
+    setPickerMessage("");
+    if (state.loaded) refreshPickerLabels();
+    else if (state.loadFailed) showPickerLoadError();
     setLoading(state.loading);
     if (state.errorKey) showError(t(state.errorKey), state.errorKey);
     if (state.data) render(state.data);
@@ -209,22 +483,6 @@
       await loadRuNames();
     }
     applyLanguage(lang);
-  }
-
-  async function loadServerConfig() {
-    try {
-      const response = await fetch("/api/foods");
-      if (!response.ok) return;
-      const data = await response.json();
-      if (Number.isFinite(data.maxIngredients)) {
-        els.maxIngredients.textContent = String(data.maxIngredients);
-      }
-      if (Number.isFinite(data.maxIngredientTypes)) {
-        els.maxTypes.textContent = String(data.maxIngredientTypes);
-      }
-    } catch (error) {
-      // Keep the static fallback from index.html.
-    }
   }
 
   function setStat(stat) {
@@ -273,10 +531,10 @@
     if (state.loading) return;
     clearError();
 
-    const ingredients = els.ingredients.value.trim();
+    const ingredients = serializeIngredients();
     if (!ingredients) {
       showError(t("errNoIngredients"), "errNoIngredients");
-      els.ingredients.focus();
+      els.search.focus();
       return;
     }
 
@@ -503,12 +761,27 @@
     renderDishes(data);
   }
 
-  els.ingredients.addEventListener("input", countIngredients);
-  els.ingredients.addEventListener("keydown", (event) => {
+  els.search.addEventListener("input", () => {
+    applyFilter();
+    clearError();
+  });
+  els.search.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       els.form.requestSubmit();
     }
+    if (event.key === "Escape" && els.search.value) {
+      els.search.value = "";
+      applyFilter();
+    }
+  });
+
+  els.clearPicker.addEventListener("click", () => {
+    if (state.counts.size) clearIngredients();
+  });
+
+  els.langButtons.forEach((button) => {
+    button.addEventListener("click", () => switchLanguage(button.dataset.lang));
   });
 
   els.langButtons.forEach((button) => {
@@ -528,10 +801,7 @@
   });
 
   els.sample.addEventListener("click", () => {
-    els.ingredients.value = t("sample");
-    countIngredients();
-    setStat("Hunger");
-    els.ingredients.focus();
+    loadSample();
   });
 
   els.form.addEventListener("submit", calculate);
@@ -539,14 +809,16 @@
   els.ignoreDried.addEventListener("change", clearError);
   els.ignoreMilkmade.addEventListener("change", clearError);
   els.ignoreOverTime.addEventListener("change", clearError);
-  els.ingredients.addEventListener("input", clearError);
 
   async function init() {
     const lang = detectLang();
-    if (lang === "ru") await loadRuNames();
+    // Russian names are also used by the picker's search box, so load them
+    // even when the interface starts in English.
+    await loadRuNames();
     setStat(state.stat);
     applyLanguage(lang);
     loadServerConfig();
+    loadFoods();
   }
 
   init();

@@ -4,6 +4,7 @@ Run with ``py site/test_site.py``.
 """
 
 import json
+import re
 import sys
 import threading
 import unittest
@@ -285,6 +286,84 @@ class SiteApiTest(unittest.TestCase):
         self.assertIn("Слишком много ингредиентов", str(caught.exception))
 
 
+class PickerTest(unittest.TestCase):
+    """The ingredient picker, its order and its icon set."""
+
+    # Items that are not crockpot ingredients and cannot be cooked, dried or
+    # roasted; they stay out of the menu.
+    TRINKETS = (
+        "Dead Wobster",
+        "Delicious Wobster",
+        "Gears",
+        "Hatching Tallbird Egg",
+        "Lune Tree Blossom",
+        "Phlegm",
+        "Rotten Egg",
+        "Succulent",
+        "Wet Goop",
+    )
+
+    @staticmethod
+    def slug(name):
+        return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+    def test_picker_only_offers_crockpot_ingredients(self):
+        for name in server.alg.picker_foods():
+            self.assertIn(name, server.alg.VALUES, name)
+            self.assertNotIn(name, server.alg._RECIPE_DISHES)
+            self.assertNotIn(name, server.alg._HAT_DISHES)
+
+    def test_picker_skips_dishes_and_trinkets(self):
+        picker = set(server.alg.picker_foods())
+        for name in self.TRINKETS:
+            self.assertNotIn(name, picker)
+        for dish in ("Meatballs", "Meaty Stew", "Butter Muffin", "Trail Mix"):
+            self.assertNotIn(dish, picker)
+
+    def test_picker_offers_every_value_ingredient_once(self):
+        foods = server.alg.picker_foods()
+        self.assertEqual(len(foods), len(set(foods)))
+        expected = set(server.alg.VALUES) - server.alg._RECIPE_DISHES - server.alg._HAT_DISHES
+        self.assertEqual(set(foods), expected)
+
+    def test_picker_follows_the_wiki_food_value_order(self):
+        foods = server.alg.picker_foods()
+        self.assertEqual(
+            foods[:5],
+            ["Barnacles", "Cooked Barnacles", "Morsel", "Cooked Morsel", "Drumstick"],
+        )
+        self.assertLess(foods.index("Morsel"), foods.index("Meat"))
+        self.assertLess(foods.index("Meat"), foods.index("Berries"))
+        self.assertLess(foods.index("Berries"), foods.index("Carrot"))
+        self.assertLess(foods.index("Carrot"), foods.index("Ice"))
+        self.assertLess(foods.index("Ice"), foods.index("Birchnut"))
+        # Extras that the wiki page does not list sit next to their relatives.
+        self.assertEqual(
+            foods[foods.index("Banana") : foods.index("Banana") + 4],
+            ["Banana", "Cooked Banana", "Cave Banana", "Cooked Cave Banana"],
+        )
+        self.assertEqual(
+            foods[foods.index("Mandrake") : foods.index("Mandrake") + 2],
+            ["Mandrake", "Cooked Mandrake"],
+        )
+
+    def test_group_names_have_no_duplicate_slugs(self):
+        slugs = {}
+        for name in server.alg.known_foods():
+            key = self.slug(name)
+            self.assertNotIn(key, slugs, f"{name} collides with {slugs.get(key)}")
+            slugs[key] = name
+
+    def test_every_food_has_an_icon_file(self):
+        icons = server.ROOT / "icons"
+        self.assertTrue(icons.is_dir(), "site/icons is missing")
+        missing = [
+            name
+            for name in server.alg.known_foods()
+            if not (icons / f"{self.slug(name)}.png").is_file()
+        ]
+        self.assertEqual(missing, [])
+
 class HttpEndpointTest(unittest.TestCase):
     """The HTTP surface the browser and simple health probes use."""
 
@@ -322,6 +401,21 @@ class HttpEndpointTest(unittest.TestCase):
             names = json.load(response)
         self.assertEqual(names["Fish"], "Рыба")
 
+    def test_foods_endpoint_returns_the_picker_list(self):
+        with urllib.request.urlopen(self.base + "/api/foods", timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            payload = json.load(response)
+        self.assertEqual(payload["foods"], server.alg.picker_foods())
+        self.assertNotIn("categories", payload)
+        self.assertEqual(payload["foods"][0], "Barnacles")
+        self.assertNotIn("Meatballs", payload["foods"])
+        self.assertEqual(payload["maxIngredients"], server.MAX_INGREDIENTS)
+        self.assertEqual(payload["maxIngredientTypes"], server.MAX_INGREDIENT_TYPES)
+
+    def test_icons_are_served(self):
+        with urllib.request.urlopen(self.base + "/icons/meat.png", timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers.get_content_type(), "image/png")
     def test_calculate_endpoint_localizes_errors(self):
         body = json.dumps(
             {

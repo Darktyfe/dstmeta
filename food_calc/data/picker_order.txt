@@ -1,0 +1,181 @@
+# Ingredient picker order for the website.
+#
+# The order follows the food-value tables of the DST wiki
+# (https://dontstarve.wiki.gg/wiki/Food_Value/DST): meat, monster meat, fish,
+# fruit, vegetable, egg, sweetener, dairy, frozen, inedible, decoration, fat,
+# magic and seed value, lightest first.  Blank lines separate those groups.
+# A few ingredients that the wiki page does not list (Hamlet/Shipwrecked
+# leftovers such as Banana or Koalefant Trunk) sit next to their relatives.
+#
+# Only ingredients with an entry in value.txt belong here: they are the ones
+# the Crock Pot accepts.  Dishes and trinkets (gears, wet goop, petals, and so
+# on) are deliberately absent, and a new value.txt ingredient that is missing
+# from this file is appended alphabetically instead of disappearing.
+#
+# Generated from the wiki page above; edit by hand when the game changes.
+
+Barnacles
+Cooked Barnacles
+
+Morsel
+Cooked Morsel
+Drumstick
+Fried Drumstick
+Frog Legs
+Cooked Frog Legs
+Small Jerky
+Cooked Eel
+Eel
+Moleworm
+Naked Nostrils
+Charred Nostrils
+Batilisk Wing
+Cooked Batilisk Wing
+Heat Gland
+Cooked Heat Gland
+Freshwater Fish
+Fish Morsel
+Cooked Fish
+Small Fishy Jerky
+Runty Guppy
+Needlenosed Squirt
+Bitty Baitfish
+Fallounder
+Bloomfin Tuna
+Scorching Sunfish
+Spittlefish
+Smolt Fry
+
+Meat
+Cooked Meat
+Jerky
+Monster Meat
+Cooked Monster Meat
+Monster Jerky
+Leafy Meat
+Cooked Leafy Meat
+Koalefant Trunk
+Koalefant Trunk Steak
+Winter Koalefant Trunk
+Wobster
+Fish
+Raw Fish
+Fish Steak
+Fishy Jerky
+Mudfish
+Deep Bass
+Dandy Lionfish
+Black Catfish
+Dappled Koi
+Golden Koi
+Ice Bream
+Sweetish Fish
+
+Durian
+Extra Smelly Durian
+
+Cooked Fish Morsel
+
+Berries
+Roasted Berries
+Juicy Berries
+Roasted Juicy Berries
+Fig
+Cooked Fig
+Lesser Glow Berry
+
+Pomegranate
+Sliced Pomegranate
+Dragon Fruit
+Prepared Dragon Fruit
+Banana
+Cooked Banana
+Cave Banana
+Cooked Cave Banana
+Watermelon
+Grilled Watermelon
+Glow Berry
+Nightberry
+Cooked Nightberry
+
+Red Cap
+Cooked Red Cap
+Green Cap
+Cooked Green Cap
+Blue Cap
+Cooked Blue Cap
+Moon Shroom
+Cooked Moon Shroom
+Kelp Fronds
+Cooked Kelp Fronds
+Dried Kelp Fronds
+Cactus Flower
+
+Carrot
+Roasted Carrot
+Corn
+Popcorn
+Eggplant
+Braised Eggplant
+Pumpkin
+Hot Pumpkin
+Lichen
+Mandrake
+Cooked Mandrake
+Cactus Flesh
+Cooked Cactus Flesh
+Asparagus
+Cooked Asparagus
+Ripe Stone Fruit
+Cooked Stone Fruit
+Garlic
+Roasted Garlic
+Onion
+Roasted Onion
+Pepper
+Roasted Pepper
+Potato
+Roasted Potato
+Toma Root
+Roasted Toma Root
+Popperfish
+Corn Cod
+
+Egg
+Cooked Egg
+
+Tallbird Egg
+Fried Tallbird Egg
+
+Honey
+Honeycomb
+
+Royal Jelly
+
+Butter
+Electric Milk
+Milky Whites
+
+Ice
+
+Twigs
+Bone Shards
+Nightmare Fuel
+Volt Goat Horn
+
+Dried Petals
+Dried Dark Petals
+Dried Foliage
+Dried Succulent
+Dried Lune Tree Blossom
+Dried Fire Nettle Frond
+Dried Tillweed
+Forget-Me-Lots
+Dried Forget-Me-Lots
+
+Butterfly Wings
+Moon Moth Wings
+Collected Dust
+
+Birchnut
+Roasted Birchnut
