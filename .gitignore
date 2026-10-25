@@ -4,3 +4,8 @@ __pycache__/
 # The portable compiler downloaded by tools/fetch_compiler.py is local only.
 tools/mingw64/
 tools/winlibs.zip
+
+# Personal notes, kept on disk but out of the repository.
+TODO.md
+TODO-later.md
+todo-later.md
