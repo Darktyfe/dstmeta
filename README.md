@@ -27,6 +27,26 @@ calculation; raise those limits with `--max-ingredients N` and `--max-types N`.
 The CLI has no caps. `GET /health` answers `{"status": "ok"}` for local
 monitors and extensions that probe the server.
 
+### Languages
+
+The header has an `EN` / `RU` switch. It remembers the choice in
+`localStorage`; a first visit follows the browser language. The interface
+strings live in `site/i18n.js`, and `site/names_ru.json` maps every food name
+to its Russian name. Russian names come from the Russian Don't Starve wiki
+(<https://dont-starve.fandom.com/ru>), with the game's official translation
+used as a fallback where the wiki has no separate page.
+
+The API keeps canonical English names. The browser translates names for
+display, while the server also accepts Russian ingredient names (with or
+without `ё`) and maps them back to English before planning:
+
+```json
+{"ingredients": "Мясо\nМясо\nМясо\nЛёд", "stat": "Hunger", "lang": "ru"}
+```
+
+Passing `"lang": "ru"` also localizes validation errors returned by
+`/api/calculate`. Omitting `lang` keeps the English API behaviour.
+
 ## Usage
 
 Requires Python 3.8+ (no third-party packages).
@@ -184,6 +204,8 @@ site/
   index.html        calculator page
   styles.css        page theme
   app.js            form handling and result rendering
+  i18n.js           English and Russian interface strings
+  names_ru.json     English-to-Russian food names
   server.py         local web server and JSON API
   test_site.py      tests for the website API
 tools/

@@ -1,3 +1,0 @@
-- Grim Galette
-- Ignore Milkmade Hat
-- Ignore Over time Stats

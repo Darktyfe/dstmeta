@@ -218,6 +218,72 @@ class SiteApiTest(unittest.TestCase):
         names = [dish["name"] for dish in result["dishes"]]
         self.assertIn("Milkmade Hat", names)
 
+    def test_every_food_has_a_russian_name(self):
+        missing = sorted(
+            set(server.alg.known_foods()) - set(server.RU_NAMES)
+        )
+        self.assertEqual(missing, [])
+
+    def test_russian_names_follow_the_wiki(self):
+        self.assertEqual(server.RU_NAMES["Fish"], "Рыба")
+        self.assertEqual(server.RU_NAMES["Morsel"], "Кусочек мяса")
+        self.assertEqual(server.RU_NAMES["Fish Morsel"], "Кусочек рыбы")
+        self.assertEqual(server.RU_NAMES["Grim Galette"], "Зловещий пирог")
+        self.assertEqual(server.RU_NAMES["Ice"], "Лёд")
+        self.assertEqual(server.RU_NAMES["Forget-Me-Lots"], "Позабудка")
+        self.assertEqual(server.RU_NAMES["Tillweeds"], "Сорняк")
+        self.assertEqual(server.RU_NAMES["Heat Gland"], "Тепловая железа")
+        self.assertEqual(server.RU_NAMES["Meaty Stew"], "Мясная похлёбка")
+        self.assertEqual(server.RU_NAMES["Cooked Morsel"], "Приготовленный кусочек мяса")
+
+    def test_russian_input_matches_english(self):
+        english = server.calculate(
+            {"ingredients": "Meat\nMeat\nMeat\nIce", "stat": "Hunger"}
+        )
+        russian = server.calculate(
+            {
+                "ingredients": "Мясо\nМясо\nМясо\nЛёд",
+                "stat": "Hunger",
+                "lang": "ru",
+            }
+        )
+
+        self.assertEqual(russian["lang"], "ru")
+        self.assertEqual(russian["total"], english["total"])
+        self.assertEqual(russian["plan"], english["plan"])
+        self.assertEqual(russian["ingredients"], english["ingredients"])
+
+    def test_russian_input_ignores_the_yo_diaeresis(self):
+        with_yo = server.calculate(
+            {"ingredients": "Мясо\nМясо\nМясо\nЛёд", "stat": "Hunger"}
+        )
+        without_yo = server.calculate(
+            {"ingredients": "Мясо\nМясо\nМясо\nЛед", "stat": "Hunger"}
+        )
+        self.assertEqual(with_yo["total"], without_yo["total"])
+
+    def test_russian_unknown_ingredient_error_is_localized(self):
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {
+                    "ingredients": "Мясо\nТайный фрукт",
+                    "stat": "Hunger",
+                    "lang": "ru",
+                }
+            )
+        message = str(caught.exception)
+        self.assertIn("Тайный фрукт", message)
+        self.assertIn("не еда", message)
+        self.assertIn("Уберите", message)
+
+    def test_russian_limit_error_is_localized(self):
+        payload = "\n".join(["Мясо"] * (server.MAX_INGREDIENTS + 1))
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {"ingredients": payload, "stat": "Hunger", "lang": "ru"}
+            )
+        self.assertIn("Слишком много ингредиентов", str(caught.exception))
+
 
 class HttpEndpointTest(unittest.TestCase):
     """The HTTP surface the browser and simple health probes use."""
@@ -249,6 +315,34 @@ class HttpEndpointTest(unittest.TestCase):
             urllib.request.urlopen(self.base + "/does-not-exist", timeout=5)
         self.assertEqual(caught.exception.code, 404)
         caught.exception.close()
+
+    def test_russian_names_file_is_served(self):
+        with urllib.request.urlopen(self.base + "/names_ru.json", timeout=5) as response:
+            self.assertEqual(response.status, 200)
+            names = json.load(response)
+        self.assertEqual(names["Fish"], "Рыба")
+
+    def test_calculate_endpoint_localizes_errors(self):
+        body = json.dumps(
+            {
+                "ingredients": "Мясо\nТайный фрукт",
+                "stat": "Hunger",
+                "lang": "ru",
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+        request = urllib.request.Request(
+            self.base + "/api/calculate",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=5)
+        self.assertEqual(caught.exception.code, 400)
+        payload = json.load(caught.exception)
+        caught.exception.close()
+        self.assertIn("не еда", payload["error"])
 
 
 if __name__ == "__main__":

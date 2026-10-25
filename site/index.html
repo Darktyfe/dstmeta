@@ -18,15 +18,18 @@
         <span class="brand-text">DST<span>Meta</span></span>
         <span class="alpha">alpha</span>
       </a>
-      <p class="tagline">Don't Starve Together food &amp; crockpot planner</p>
+      <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria-label="language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="ru">RU</button>
+      </div>
     </div>
   </header>
 
   <main class="wrap">
     <section class="hero">
-      <p class="eyebrow">Chest to plate</p>
-      <h1>Make every ingredient count.</h1>
-      <p class="hero-text">
+      <p class="eyebrow" data-i18n="eyebrow">Chest to plate</p>
+      <h1 data-i18n="headline">Make every ingredient count.</h1>
+      <p class="hero-text" data-i18n="heroText">
         Tell us what is in your chest. We will find the best mix of crockpot
         dishes, campfire roasts, drying rack foods, and raw snacks for the stat
         you care about.
@@ -37,38 +40,44 @@
       <section class="card ingredients-card">
         <div class="card-head">
           <span class="step-badge">1</span>
-          <h2>Your ingredients</h2>
+          <h2 data-i18n="ingredientsTitle">Your ingredients</h2>
           <span id="item-count" class="count">0 items</span>
         </div>
-        <label class="sr-only" for="ingredients">Ingredients, one per line</label>
+        <label class="sr-only" for="ingredients" data-i18n="ingredientsLabel">Ingredients, one per line</label>
         <textarea id="ingredients" name="ingredients" spellcheck="false"
+          data-i18n-placeholder="ingredientsPlaceholder"
           placeholder="Meat&#10;Meat&#10;Meat&#10;Ice&#10;Meat"></textarea>
         <div class="ingredient-hint">
-          <span>One per line, up to <span id="max-ingredients">100</span> items and
-            <span id="max-types">24</span> kinds. Duplicates matter.</span>
-          <button type="button" id="sample" class="link-button">Load example</button>
+          <span>
+            <span data-i18n="hintLead">One per line, up to</span>
+            <span id="max-ingredients">100</span>
+            <span data-i18n="hintMid">items and</span>
+            <span id="max-types">24</span>
+            <span data-i18n="hintTail">kinds. Duplicates matter.</span>
+          </span>
+          <button type="button" id="sample" class="link-button" data-i18n="loadExample">Load example</button>
         </div>
       </section>
 
       <aside class="card config-card">
         <div class="card-head">
           <span class="step-badge">2</span>
-          <h2>Config</h2>
+          <h2 data-i18n="configTitle">Config</h2>
         </div>
 
         <fieldset class="field">
-          <legend>Maximize</legend>
-          <div class="segmented" role="group" aria-label="Stat to maximize">
-            <button type="button" data-stat="Hunger" class="active">Hunger</button>
-            <button type="button" data-stat="Sanity">Sanity</button>
-            <button type="button" data-stat="Health">Health</button>
+          <legend data-i18n="maximize">Maximize</legend>
+          <div class="segmented" role="group" data-i18n-aria-label="statToMaximize" aria-label="Stat to maximize">
+            <button type="button" data-stat="Hunger" class="active" data-i18n="statHunger">Hunger</button>
+            <button type="button" data-stat="Sanity" data-i18n="statSanity">Sanity</button>
+            <button type="button" data-stat="Health" data-i18n="statHealth">Health</button>
           </div>
         </fieldset>
 
         <label class="switch-row">
           <span>
-            <span class="switch-title">Warly recipes</span>
-            <span class="switch-sub">Portable Crock Pot exclusives</span>
+            <span class="switch-title" data-i18n="warlyTitle">Warly recipes</span>
+            <span class="switch-sub" data-i18n="warlySub">Portable Crock Pot exclusives</span>
           </span>
           <input type="checkbox" id="warly" name="warly">
           <span class="switch" aria-hidden="true"></span>
@@ -76,8 +85,8 @@
 
         <label class="switch-row">
           <span>
-            <span class="switch-title">Ignore Dried variants</span>
-            <span class="switch-sub">Default: on &middot; skip Jerky and dried kelp</span>
+            <span class="switch-title" data-i18n="ignoreDriedTitle">Ignore Dried variants</span>
+            <span class="switch-sub" data-i18n="ignoreDriedSub">Default: on &middot; skip Jerky and dried kelp</span>
           </span>
           <input type="checkbox" id="ignore-dried" name="ignore-dried" checked>
           <span class="switch" aria-hidden="true"></span>
@@ -85,8 +94,8 @@
 
         <label class="switch-row">
           <span>
-            <span class="switch-title">Ignore Milkmade Hat</span>
-            <span class="switch-sub">Default: on &middot; it is worn, not eaten</span>
+            <span class="switch-title" data-i18n="ignoreMilkmadeTitle">Ignore Milkmade Hat</span>
+            <span class="switch-sub" data-i18n="ignoreMilkmadeSub">Default: on &middot; it is worn, not eaten</span>
           </span>
           <input type="checkbox" id="ignore-milkmade" name="ignore-milkmade" checked>
           <span class="switch" aria-hidden="true"></span>
@@ -94,31 +103,31 @@
 
         <label class="switch-row">
           <span>
-            <span class="switch-title">Ignore over time stats</span>
-            <span class="switch-sub">Default: on &middot; only instant stat gains</span>
+            <span class="switch-title" data-i18n="ignoreOverTimeTitle">Ignore over time stats</span>
+            <span class="switch-sub" data-i18n="ignoreOverTimeSub">Default: on &middot; only instant stat gains</span>
           </span>
           <input type="checkbox" id="ignore-over-time" name="ignore-over-time" checked>
           <span class="switch" aria-hidden="true"></span>
         </label>
 
         <fieldset class="field">
-          <legend>Permissible losses</legend>
+          <legend data-i18n="lossesTitle">Permissible losses</legend>
           <p class="field-help">
-            How much of each stat the whole plan may lose.
-            <strong>0</strong> means never finish below zero.
+            <span data-i18n="lossesHelpA">How much of each stat the whole plan may lose.</span>
+            <strong>0</strong><span data-i18n="lossesHelpB"> means never finish below zero.</span>
           </p>
           <div class="loss-grid">
             <label class="loss loss-hunger">
-              <span>Hunger</span>
-              <input type="number" id="loss-hunger" name="loss-hunger" aria-label="Allowed hunger loss" min="0" step="0.5" value="0">
+              <span data-i18n="statHunger">Hunger</span>
+              <input type="number" id="loss-hunger" name="loss-hunger" data-i18n-aria-label="allowedHungerLoss" aria-label="Allowed hunger loss" min="0" step="0.5" value="0">
             </label>
             <label class="loss loss-sanity">
-              <span>Sanity</span>
-              <input type="number" id="loss-sanity" name="loss-sanity" aria-label="Allowed sanity loss" min="0" step="0.5" value="0">
+              <span data-i18n="statSanity">Sanity</span>
+              <input type="number" id="loss-sanity" name="loss-sanity" data-i18n-aria-label="allowedSanityLoss" aria-label="Allowed sanity loss" min="0" step="0.5" value="0">
             </label>
             <label class="loss loss-health">
-              <span>Health</span>
-              <input type="number" id="loss-health" name="loss-health" aria-label="Allowed health loss" min="0" step="0.5" value="0">
+              <span data-i18n="statHealth">Health</span>
+              <input type="number" id="loss-health" name="loss-health" data-i18n-aria-label="allowedHealthLoss" aria-label="Allowed health loss" min="0" step="0.5" value="0">
             </label>
           </div>
         </fieldset>
@@ -134,7 +143,7 @@
     <section id="results" class="results" hidden aria-live="polite">
       <section class="card summary-card">
         <div class="summary-main">
-          <p class="eyebrow">Best plan for <span id="summary-stat">Hunger</span></p>
+          <p class="eyebrow"><span data-i18n="bestPlanFor">Best plan for</span> <span id="summary-stat">Hunger</span></p>
           <div class="total-line">
             <span id="total-value">—</span>
             <span id="total-unit" class="total-unit">hunger</span>
@@ -150,17 +159,17 @@
       <div class="result-grid">
         <section class="card plan-card">
           <div class="card-head">
-            <h2>Plan</h2>
+            <h2 data-i18n="planTitle">Plan</h2>
             <span id="plan-mode" class="pill">exhaustive</span>
           </div>
           <ol id="plan-steps" class="steps"></ol>
         </section>
 
         <section class="card best-card" id="best-card">
-          <p class="eyebrow">Best single dish</p>
+          <p class="eyebrow" data-i18n="bestDish">Best single dish</p>
           <h3 id="best-name">—</h3>
           <div id="best-stats" class="chips"></div>
-          <p class="combo-label">From</p>
+          <p class="combo-label" data-i18n="from">From</p>
           <p id="best-combo" class="combo"></p>
         </section>
       </div>
@@ -168,7 +177,7 @@
       <section class="card dishes-card">
         <details open>
           <summary>
-            <span>All cookable dishes</span>
+            <span data-i18n="allDishes">All cookable dishes</span>
             <span id="dishes-count" class="pill">0</span>
           </summary>
           <p id="dishes-note" class="field-help"></p>
@@ -179,8 +188,8 @@
 
     <section class="note-strip">
       <div>
-        <h2>How losses work</h2>
-        <p>
+        <h2 data-i18n="howLossesTitle">How losses work</h2>
+        <p data-i18n="howLossesText">
           A plan is rejected if any final stat drops below the negative of its
           permissible loss. Keep the defaults at <strong>0</strong> for a
           no-loss plan, or raise a limit to trade one stat for a stronger
@@ -188,8 +197,8 @@
         </p>
       </div>
       <div>
-        <h2>What gets considered</h2>
-        <p>
+        <h2 data-i18n="consideredTitle">What gets considered</h2>
+        <p data-i18n="consideredText">
           Eating raw, roasting first, drying on a rack (unless ignored), keeping
           an item, or cooking four items in the pot. Plans are checked as a
           whole, not dish by dish. Slow, over-time stat gains are skipped
@@ -201,11 +210,12 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>Data from the Don't Starve wiki. Not affiliated with Klei Entertainment.</p>
-      <p class="footer-small">DSTMeta is a working name.</p>
+      <p data-i18n="footerData">Data from the Don't Starve wiki. Not affiliated with Klei Entertainment.</p>
+      <p class="footer-small" data-i18n="footerSmall">DSTMeta is a working name.</p>
     </div>
   </footer>
 
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

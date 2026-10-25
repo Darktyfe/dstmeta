@@ -16,7 +16,7 @@ import mimetypes
 import sys
 import webbrowser
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -33,33 +33,123 @@ MAX_BODY_BYTES = 1_000_000
 MAX_DISHES = 80
 STAT_KEYS = alg.STAT_NAMES
 
+NAMES_RU_PATH = ROOT / "names_ru.json"
 
-def parse_ingredients(value):
+MESSAGES = {
+    "en": {
+        "errNoIngredients": "Add at least one ingredient.",
+        "errBadIngredients": "ingredients must be text or a list of names",
+        "errTooMany": "Too many ingredients for one plan (max {max}).",
+        "errTooManyKinds": (
+            "Too many different ingredients for one plan "
+            "(max {max} kinds, got {kinds})."
+        ),
+        "errStat": "stat must be one of {stats}",
+        "errUnknownOne": (
+            "{name!r} is not a food and should be removed from the ingredient "
+            "list."
+        ),
+        "errUnknownMany": (
+            "{names} are not foods and should be removed from the ingredient "
+            "list."
+        ),
+        "errBadRequest": "request body must be a JSON object",
+        "errBadBody": "Invalid request body.",
+        "errUnexpected": "The calculator hit an unexpected error.",
+        "errNotFound": "Not found.",
+    },
+    "ru": {
+        "errNoIngredients": "Сначала добавьте хотя бы один ингредиент.",
+        "errBadIngredients": (
+            "Ингредиенты должны быть текстом или списком названий."
+        ),
+        "errTooMany": (
+            "Слишком много ингредиентов для одного плана (максимум {max})."
+        ),
+        "errTooManyKinds": (
+            "Слишком много разных ингредиентов для одного плана "
+            "(максимум {max} видов, получено {kinds})."
+        ),
+        "errStat": "Характеристика должна быть одной из: {stats}.",
+        "errUnknownOne": (
+            "«{name}» — не еда. Уберите его из списка ингредиентов."
+        ),
+        "errUnknownMany": (
+            "Не еда: {names}. Уберите их из списка ингредиентов."
+        ),
+        "errBadRequest": "тело запроса должно быть JSON-объектом",
+        "errBadBody": "Некорректный запрос.",
+        "errUnexpected": "В калькуляторе произошла непредвиденная ошибка.",
+        "errNotFound": "Не найдено.",
+    },
+}
+
+
+def normalize_lang(value):
+    """Return the interface language used for error messages."""
+    if isinstance(value, str) and value.lower().startswith("ru"):
+        return "ru"
+    return "en"
+
+
+def message(lang, key, **values):
+    """Return a localized server message."""
+    text = MESSAGES.get(lang, MESSAGES["en"]).get(key, MESSAGES["en"][key])
+    return text.format(**values) if values else text
+
+
+def load_ru_names():
+    """Load the English-to-Russian food names served to the browser."""
+    try:
+        data = json.loads(NAMES_RU_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {
+        str(name): str(translated)
+        for name, translated in data.items()
+        if name and translated
+    }
+
+
+RU_NAMES = load_ru_names()
+
+
+def ru_key(name):
+    """Normalize a Russian food name for lookup (ё and case insensitive)."""
+    return " ".join(str(name).strip().casefold().replace("ё", "е").split())
+
+
+RU_LOOKUP = {ru_key(translated): name for name, translated in RU_NAMES.items()}
+
+
+def parse_ingredients(value, lang="en"):
     """Accept a newline/comma separated string or a list of names."""
     if isinstance(value, str):
         chunks = value.replace(",", "\n").splitlines()
     elif isinstance(value, list):
         chunks = [str(item) for item in value]
     else:
-        raise ValueError("ingredients must be text or a list of names")
+        raise ValueError(message(lang, "errBadIngredients"))
 
     names = [chunk.strip() for chunk in chunks if chunk.strip()]
     if not names:
-        raise ValueError("Add at least one ingredient.")
+        raise ValueError(message(lang, "errNoIngredients"))
     if len(names) > MAX_INGREDIENTS:
-        raise ValueError(
-            f"Too many ingredients for one plan (max {MAX_INGREDIENTS})."
-        )
+        raise ValueError(message(lang, "errTooMany", max=MAX_INGREDIENTS))
     return names
 
 
-def check_ingredient_types(names):
+def check_ingredient_types(names, lang="en"):
     """Reject inventories with more kinds than the planner handles quickly."""
     kinds = len(set(names))
     if kinds > MAX_INGREDIENT_TYPES:
         raise ValueError(
-            f"Too many different ingredients for one plan "
-            f"(max {MAX_INGREDIENT_TYPES} kinds, got {kinds})."
+            message(
+                lang,
+                "errTooManyKinds",
+                max=MAX_INGREDIENT_TYPES,
+                kinds=kinds,
+            )
         )
 
 
@@ -69,6 +159,8 @@ def resolve_names(names):
     unknown = []
     for name in names:
         canonical = alg.resolve_food_name(name)
+        if canonical is None:
+            canonical = RU_LOOKUP.get(ru_key(name))
         if canonical is None:
             resolved.append(name)
             unknown.append(name)
@@ -111,11 +203,12 @@ def dish_dict(dish, combo, score, over_time=True):
 def calculate(payload):
     """Run one calculation and return JSON-serialisable results."""
     if not isinstance(payload, dict):
-        raise ValueError("request body must be a JSON object")
-    names = parse_ingredients(payload.get("ingredients", ""))
+        raise ValueError(message("en", "errBadRequest"))
+    lang = normalize_lang(payload.get("lang"))
+    names = parse_ingredients(payload.get("ingredients", ""), lang)
     stat = payload.get("stat", "Hunger")
     if stat not in STAT_KEYS:
-        raise ValueError(f"stat must be one of {', '.join(STAT_KEYS)}")
+        raise ValueError(message(lang, "errStat", stats=", ".join(STAT_KEYS)))
     warly = bool(payload.get("warly", False))
     # The site checkboxes are "Ignore Dried variants", "Ignore Milkmade Hat"
     # and "Ignore over time stats"; all three default to on.
@@ -126,8 +219,14 @@ def calculate(payload):
 
     ingredients, unknown = resolve_names(names)
     if unknown:
+        if lang == "ru":
+            unique = list(dict.fromkeys(unknown))
+            if len(unique) == 1:
+                raise ValueError(message("ru", "errUnknownOne", name=unique[0]))
+            quoted = ", ".join(f"«{name}»" for name in unique)
+            raise ValueError(message("ru", "errUnknownMany", names=quoted))
         raise ValueError(alg.unknown_food_message(unknown))
-    check_ingredient_types(ingredients)
+    check_ingredient_types(ingredients, lang)
     exact = not alg.needs_fast_plan(ingredients)
 
     total, actions = alg.find_best_plan(
@@ -162,6 +261,7 @@ def calculate(payload):
     return {
         "ingredients": ingredients,
         "stat": stat,
+        "lang": lang,
         "warly": warly,
         "dried": dried,
         "milkmade": milkmade,
@@ -202,8 +302,13 @@ class Handler(BaseHTTPRequestHandler):
         self.serve_static(path)
 
     def do_POST(self):
-        if urlparse(self.path).path != "/api/calculate":
-            self.send_json(HTTPStatus.NOT_FOUND, {"error": "Not found."})
+        parsed = urlparse(self.path)
+        query = parse_qs(parsed.query)
+        lang = normalize_lang(query.get("lang", ["en"])[0])
+        if parsed.path != "/api/calculate":
+            self.send_json(
+                HTTPStatus.NOT_FOUND, {"error": message(lang, "errNotFound")}
+            )
             return
 
         try:
@@ -211,11 +316,15 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             length = 0
         if length <= 0 or length > MAX_BODY_BYTES:
-            self.send_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid request body."})
+            self.send_json(
+                HTTPStatus.BAD_REQUEST, {"error": message(lang, "errBadBody")}
+            )
             return
 
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            if isinstance(payload, dict):
+                lang = normalize_lang(payload.get("lang"))
             result = calculate(payload)
         except ValueError as error:
             self.send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
@@ -224,7 +333,7 @@ class Handler(BaseHTTPRequestHandler):
             self.log_error("calculation failed: %s", error)
             self.send_json(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
-                {"error": "The calculator hit an unexpected error."},
+                {"error": message(lang, "errUnexpected")},
             )
             return
 
