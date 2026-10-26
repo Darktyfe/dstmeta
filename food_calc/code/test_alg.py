@@ -321,6 +321,38 @@ class DryingTest(unittest.TestCase):
         )
         self.assertEqual(alg.get_food_stats("Raw Fish"), (25.0, 0.0, 8.0))
 
+    def test_dried_plants_can_be_made_and_eaten(self):
+        # The Winter's Feast 2025 update lets the rack dry petals, foliage and
+        # the other leafy items as well; each result is a real food.
+        expected = {
+            "Petals": (0.0, 1.0, 1.0),
+            "Dark Petals": (0.0, -5.0, 1.0),
+            "Foliage": (0.0, 0.0, 1.0),
+            "Succulent": (0.0, 0.0, 8.0),
+            "Lune Tree Blossom": (0.0, 10.0, 1.0),
+            "Fire Nettle Fronds": (0.0, -5.0, -3.0),
+            "Tillweeds": (0.0, 0.0, 8.0),
+            "Forget-Me-Lots": (0.0, 5.0, 1.0),
+        }
+        for raw, stats in expected.items():
+            dried = alg.get_dried_variant(raw)
+            self.assertIsNotNone(dried, raw)
+            self.assertEqual(alg.get_food_stats(dried), stats, dried)
+
+    def test_every_dried_link_points_at_an_edible_item(self):
+        for raw, dried in alg.DRIED.items():
+            self.assertIsNotNone(alg.get_food_stats(dried), f"{raw} -> {dried}")
+
+    def test_drying_plants_needs_the_dried_flag(self):
+        total, actions = alg.find_best_plan(["Succulent"] * 4, "Health", dried=True)
+        self.assertEqual(total, 32)
+        self.assertEqual({action[0] for action in actions}, {"dry"})
+        self.assertTrue(all(action[2] == "Dried Succulent" for action in actions))
+
+        total, actions = alg.find_best_plan(["Succulent"] * 4, "Health")
+        self.assertEqual(total, 4)
+        self.assertEqual({action[0] for action in actions}, {"eat"})
+
     def test_dried_pot_still_uses_raw_meat(self):
         dishes = alg.cookable_dishes(["Meat"] * 4, dried=True)
         self.assertEqual(dishes["Meaty Stew"][0], ("Meat",) * 4)
@@ -443,6 +475,27 @@ class LookupTest(unittest.TestCase):
         self.assertIn("*Sweetener", conditions)
         self.assertEqual(excludes, "")
         self.assertEqual(priority, 50)
+
+    def test_edible_items_have_stats(self):
+        # Wiki values for foods that had no food.txt entry.
+        expected = {
+            "Barnacles": (12.5, -5.0, 0.0),
+            "Cooked Barnacles": (12.5, 0.0, 1.0),
+            "Cave Banana": (12.5, 0.0, 1.0),
+            "Cooked Cave Banana": (12.5, 0.0, 3.0),
+            "Birchnut": (9.375, 0.0, 1.0),
+            "Collected Dust": (1.0, 0.0, 10.0),
+            "Freshwater Fish": (12.5, 0.0, 1.0),
+            "Heat Gland": (18.75, -10.0, 8.0),
+            "Cooked Heat Gland": (25.0, -5.0, 20.0),
+            "Nightberry": (12.5, -20.0, -8.0),
+            "Cooked Nightberry": (18.8, -5.0, -3.0),
+            "Smolt Fry": (12.5, 0.0, 1.0),
+            "Spittlefish": (12.5, 0.0, 1.0),
+            "Foliage": (0.0, 0.0, 1.0),
+        }
+        for name, stats in expected.items():
+            self.assertEqual(alg.get_food_stats(name), stats, name)
 
 
 class FastPlanTest(unittest.TestCase):
