@@ -150,7 +150,7 @@ the current native engine and the fast planner:
 
 |   | 18 distinct | 20 distinct | 22 distinct | 24 distinct |
 |---|-------------|-------------|-------------|-------------|
-| Exact search | ~2.5 s | ~6 s | too large | too large |
+| Exact search | ~2.5 s | ~10 s | too large | too large |
 | Fast planner | not used | not used | ~7.5 s | ~11 s |
 
 The site caps inputs at 100 items and 24 kinds so a request still finishes

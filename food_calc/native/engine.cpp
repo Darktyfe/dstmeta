@@ -257,10 +257,32 @@ const Points& solve(Task& task, const int32_t* counts) {
         return memo->second;
     }
 
-    Points points = individual_frontier(task, counts);
-
     std::vector<int32_t> remaining(counts, counts + task.types);
     remaining[first] -= 1;
+
+    // Either the first item is used on its own (kept, eaten, roasted or
+    // dried), in which case the rest of the inventory is still free to cook,
+    // or it joins three other items in the pot.  Solving only the pot groups
+    // would miss every plan that leaves the first item out of the pot but
+    // cooks some of the remaining items.
+    Points points;
+    const int32_t begin = task.ind_off[first];
+    const int32_t end = task.ind_off[first + 1];
+    const Points& sub_rest = solve(task, remaining.data());
+    points.reserve(sub_rest.size() * static_cast<size_t>(end - begin));
+    for (int32_t o = begin; o < end; ++o) {
+        for (const Point& point : sub_rest) {
+            Act act{};
+            act.kind = static_cast<uint8_t>(task.ind_kind[o]);
+            act.type = static_cast<uint8_t>(first);
+            Point next;
+            next.v = add(point.v, &task.ind_stats[o * 3]);
+            next.tail = push_node(task, point, act);
+            next.len = point.len + 1;
+            next.pot_cooked = point.pot_cooked;
+            points.push_back(next);
+        }
+    }
 
     // Every 3-item multiset drawn from the remaining items; each type index
     // may repeat depending on its count.  Always ascending, so the group is

@@ -783,7 +783,7 @@ def _solve_frontier(inventory, warly, dried=False, over_time=True, milkmade=True
         # would miss every plan that leaves the first item out of the pot but
         # cooks some of the remaining items.
         points = []
-        for option_stats, option_action in _individual_options(first, False, over_time):
+        for option_stats, option_action in _individual_options(first, dried, over_time):
             for sub_stats, sub_actions in solve(rest):
                 points.append(
                     (
@@ -1244,10 +1244,11 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
     inventory = tuple(sorted(food_list))
 
     if needs_fast_plan(inventory):
-        return _beam_plan(
+        total, actions = _beam_plan(
             inventory, STAT_NAMES.index(stat), allowed, warly, dried,
             over_time, milkmade,
         )
+        return total, _expand_prep(actions, inventory)
 
     if _USE_NATIVE:
         native = _native_plan(
@@ -1255,7 +1256,8 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
             over_time, milkmade,
         )
         if native is not None:
-            return native
+            total, actions = native
+            return total, _expand_prep(actions, inventory)
 
     points = _solve_frontier(inventory, warly, dried, over_time, milkmade)
 
@@ -1280,6 +1282,68 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
 
     vector, actions = max(feasible, key=rank)
     return vector[index], _expand_prep(actions, inventory)
+
+
+def _expand_prep(actions, inventory):
+    """Add the campfire steps needed to use cooked forms in the pot.
+
+    The optimizer treats a campfire roast as free, so a pot ingredient may be
+    listed in its cooked form even though the inventory only holds the raw
+    item.  Those roasts are real steps the player has to take; insert them
+    before the cook action so the returned plan can be followed literally.
+
+    Individual ``roast`` and ``dry`` actions are left alone: they mean "roast
+    (or dry) this item and eat it", so they keep contributing to the plan's
+    totals.
+    """
+    available = Counter(inventory)
+    expanded = []
+
+    for action in actions:
+        kind, source, target = action
+        if kind != "cook":
+            if kind in ("eat", "roast", "dry", "keep"):
+                available[source] -= 1
+            expanded.append(action)
+            continue
+
+        used = []
+        for item in source:
+            if available[item] > 0:
+                available[item] -= 1
+                used.append(item)
+                continue
+
+            raw = next(
+                (
+                    candidate
+                    for candidate, cooked in COOKED.items()
+                    if cooked == item and available[candidate] > 0
+                ),
+                None,
+            )
+            if raw is None:
+                raw = next(
+                    (
+                        candidate
+                        for candidate, dried_item in DRIED.items()
+                        if dried_item == item and available[candidate] > 0
+                    ),
+                    None,
+                )
+            if raw is None:
+                # The optimizer produced this item from the inventory, so this
+                # should be unreachable; keep the plan usable if data changes.
+                used.append(item)
+                continue
+
+            available[raw] -= 1
+            expanded.append(("prep", raw, item))
+            used.append(item)
+
+        expanded.append(("cook", tuple(used), target))
+
+    return expanded
 
 
 def plan_totals(actions, over_time=True):
