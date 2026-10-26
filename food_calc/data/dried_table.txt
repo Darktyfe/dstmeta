@@ -1,11 +1,19 @@
 Batilisk Wing: Small Jerky
+Dark Petals: Dried Dark Petals
 Drumstick: Small Jerky
 Eel: Small Fishy Jerky
+Fire Nettle Fronds: Dried Fire Nettle Frond
 Fish Morsel: Small Fishy Jerky
+Foliage: Dried Foliage
+Forget-Me-Lots: Dried Forget-Me-Lots
 Frog Legs: Small Jerky
 Kelp Fronds: Dried Kelp Fronds
+Lune Tree Blossom: Dried Lune Tree Blossom
 Meat: Jerky
 Monster Meat: Monster Jerky
 Morsel: Small Jerky
 Naked Nostrils: Small Jerky
+Petals: Dried Petals
 Raw Fish: Fishy Jerky
+Succulent: Dried Succulent
+Tillweeds: Dried Tillweed

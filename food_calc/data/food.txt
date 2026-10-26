@@ -1,9 +1,12 @@
 Asparagus: 12.5, 0, 3
 Cooked Asparagus: 25, 0, 3
+Barnacles: 12.5, -5, 0
+Cooked Barnacles: 12.5, 0, 1
 Batilisk Wing: 12.5, -10, 3
 Cooked Batilisk Wing: 18.75, 0, 8
 Berries: 9.375, 0, 0
 Roasted Berries: 12.5, 0, 1
+Birchnut: 9.375, 0, 1
 Roasted Birchnut: 9.375, 0, 1
 Butter: 25, 0, 40
 Butterfly Wings: 9.375, 0, 8
@@ -14,6 +17,8 @@ Carrot: 12.5, 0, 1
 Roasted Carrot: 12.5, 0, 3
 Banana: 12.5, 0, 1
 Cooked Banana: 12.5, 0, 3
+Cave Banana: 12.5, 0, 1
+Cooked Cave Banana: 12.5, 0, 3
 Corn: 25, 0, 3
 Popcorn: 12.5, 0, 3
 Dragon Fruit: 9.375, 0, 3
@@ -32,6 +37,7 @@ Braised Eggplant: 25, 0, 20
 Fig: 12.5, 0, 0
 Cooked Fig: 18.75, 0, 1
 Fire Nettle Fronds: 0, -5, -3
+Dried Fire Nettle Frond: 0, -5, -3
 Fish: 12.5, 0, 1
 Cooked Fish: 12.5, 0, 1
 Fish Morsel: 12.5, 0, 1
@@ -39,7 +45,10 @@ Cooked Fish Morsel: 12.5, 0, 1
 Raw Fish: 25, 0, 8
 Fish Steak: 25, 0, 8
 Fishy Jerky: 25, 15, 30
+Foliage: 0, 0, 1
+Dried Foliage: 0, 0, 1
 Forget-Me-Lots: 0, 1, 0
+Dried Forget-Me-Lots: 0, 5, 1
 Frog Legs: 12.5, -10, 0
 Cooked Frog Legs: 12.5, 0, 1
 Garlic: 9.375, -10, 0
@@ -48,8 +57,12 @@ Gears: 75, 50, 60
 Glommer's Goop: 9.375, -50, 40
 Glow Berry: 25, -10, 10
 Lesser Glow Berry: 12.5, -10, 3
+Nightberry: 12.5, -20, -8
+Cooked Nightberry: 18.8, -5, -3
 Guardian's Horn: 75, -15, 60
 Honey: 9.375, 0, 3
+Heat Gland: 18.75, -10, 8
+Cooked Heat Gland: 25, -5, 20
 Ice: 2.3, 0, 0.5
 Juicy Berries: 12.5, 0, 1
 Roasted Juicy Berries: 18.75, 0, 3
@@ -64,6 +77,7 @@ Cooked Leafy Meat: 18.75, 0, 1
 Lichen: 12.5, -5, 3
 Light Bulb: 0, 0, 1
 Lune Tree Blossom: 0, 0, 1
+Dried Lune Tree Blossom: 0, 10, 1
 Mandrake: 75, 0, 60
 Cooked Mandrake: 150, 0, 100
 Meat: 25, -10, 1
@@ -80,6 +94,9 @@ Morsel: 12.5, -10, 0
 Cooked Morsel: 12.5, -10, 0
 Small Fishy Jerky: 12.5, 20, 15
 Small Jerky: 12.5, 10, 8
+Freshwater Fish: 12.5, 0, 1
+Smolt Fry: 12.5, 0, 1
+Spittlefish: 12.5, 0, 1
 Blue Cap: 12.5, -15, 20
 Cooked Blue Cap: 0, 10, -3
 Green Cap: 12.5, -50, 0
@@ -91,8 +108,11 @@ Onion: 9.375, -10, 0
 Roasted Onion: 9.375, -5, 1
 Pepper: 9.375, -15, -20
 Roasted Pepper: 9.375, -10, -3
+Collected Dust: 1, 0, 10
 Petals: 0, 0, 1
+Dried Petals: 0, 1, 1
 Dark Petals: 0, -5, 0
+Dried Dark Petals: 0, -5, 1
 Phlegm: 12.5, -15, 0
 Pomegranate: 9.375, 0, 3
 Sliced Pomegranate: 12.5, 0, 20
@@ -109,10 +129,12 @@ Crop Seeds: 9.375, 0, 0.5
 Ripe Stone Fruit: 12.5, 0, 1
 Cooked Stone Fruit: 12.5, 0, 3
 Succulent: 0, 0, 1
+Dried Succulent: 0, 0, 8
 Tallbird Egg: 25, 0, 3
 Hatching Tallbird Egg: 25, 0, 3
 Fried Tallbird Egg: 37.5, 0, 0
 Tillweeds: 0, 0, 1
+Dried Tillweed: 0, 0, 8
 Toma Root: 12.5, 0, 3
 Roasted Toma Root: 12.5, 0, 20
 Watermelon: 12.5, 5, 3

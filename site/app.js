@@ -784,10 +784,6 @@
     button.addEventListener("click", () => switchLanguage(button.dataset.lang));
   });
 
-  els.langButtons.forEach((button) => {
-    button.addEventListener("click", () => switchLanguage(button.dataset.lang));
-  });
-
   els.statButtons.forEach((button) => {
     button.addEventListener("click", () => setStat(button.dataset.stat));
   });
@@ -817,7 +813,6 @@
     await loadRuNames();
     setStat(state.stat);
     applyLanguage(lang);
-    loadServerConfig();
     loadFoods();
   }
 
