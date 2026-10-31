@@ -443,6 +443,11 @@ class LookupTest(unittest.TestCase):
     def test_stats_are_tuples(self):
         self.assertEqual(alg.get_food_stats("Meatballs"), (62.5, 5.0, 3.0))
 
+    def test_cooked_morsel_does_not_copy_the_raw_stats(self):
+        # Roasting takes away the raw morsel's sanity penalty.
+        self.assertEqual(alg.get_food_stats("Morsel"), (12.5, -10.0, 0.0))
+        self.assertEqual(alg.get_food_stats("Cooked Morsel"), (12.5, 0.0, 1.0))
+
     def test_missing_stats_read_as_zero(self):
         self.assertEqual(alg.get_food_stat("Not A Food", "Hunger"), 0)
 
