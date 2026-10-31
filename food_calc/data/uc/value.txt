@@ -17,3 +17,9 @@ Burnt Rice: *Vegetable - 1
 Foliage: *Foliage - 1
 Green Foliage: *Foliage - 1
 Forget-Me-Lots: *Decoration - 1, *Foliage - 1
+Beefalo Horn: *Meat - 1
+Fire Nettle Fronds: *Foliage - 1
+Rabbit: *Meat - 0.5
+Koalefant Trunk: *Meat - 2
+Winter Koalefant Trunk: *Meat - 2
+Koalefant Trunk Steak: *Meat - 2

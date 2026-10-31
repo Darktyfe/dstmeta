@@ -66,6 +66,8 @@ DIRECT_ICONS = {
     "Heat Gland": "https://dontstarve.wiki.gg/images/Heat_Gland_Dropped.png",
     "Small Fishy Jerky": "https://dontstarve.wiki.gg/images/Small_Fishy_Jerky.png",
     "Wobster": "https://dontstarve.wiki.gg/images/Wobster_%28DST%29.png",
+    "Beefalo Horn": "https://dontstarve.wiki.gg/images/Beefalo_Horn.png",
+    "Rabbit": "https://dontstarve.wiki.gg/images/Rabbit.png",
     # Uncompromising Mode adds its own foods.  They only appear in the picker
     # when the site runs in UC mode.
     "Boomberry": "https://uncompromisingmode.wiki.gg/images/Boomberry.png",

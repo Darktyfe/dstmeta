@@ -24,3 +24,37 @@ Snowcone: 9.375, 5, 3
 Steamed Hams: 37.5, 15, 40
 Stuffed Peeper Poppers: 37.5, -15, -3
 Zazpberry Parfait: 37.5, 15, 40
+Butterfly Wings: 2.5, 0, 1
+Cactus Flesh: 12.5, -5, -8
+Cooked Cactus Flesh: 12.5, 5, 1
+Eggplant: 18.75, 0, 8
+Braised Eggplant: 18.75, 0, 12
+Fire Nettle Fronds: 0, -5, -15
+Cooked Green Cap: 0, 15, -5
+Winter Koalefant Trunk: 37.5, 0, 30
+Cooked Monster Meat: 18.75, -10, -8
+Roasted Potato: 18.75, 0, 8
+Roasted Toma Root: 12.5, 0, 8
+Rot: -10, -5, -5
+Seeds: 1.5, 0, 0
+Toasted Seeds: 1.5, 0, 1
+Honey: 2.5, 0, 1
+Asparagus Soup: 25, 20, 30
+Barnacle Nigiri: 37.5, 15, 40
+Barnacle Pita: 37.5, 15, 8
+Creamy Potato Purée: 75, 15, 20
+Fancy Spiralled Tubers: 25, 15, 3
+Figgy Frogwich: 37.5, 33, 3
+Figkabab: 37.5, 10, 20
+Fish Tacos: 75, 5, 20
+Flower Salad: 12.5, 5, 60
+Ice Cream: 25, 100, 0
+Meatballs: 50, 5, 3
+Powdercake: 0, 0, -3
+Puffed Potato Soufflé: 50, 5, 60
+Pumpkin Cookies: 50, 33, 15
+Salsa Fresca: 25, 50, 3
+Seafood Gumbo: 100, 5, 5
+Stuffed Eggplant: 50, 5, 20
+Stuffed Pepper Poppers: 25, -5, 40
+Veggie Burger: 100, 5, 3
