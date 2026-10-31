@@ -152,29 +152,42 @@ total for the chosen stat rather than only the best single dish. Very large
 mixed inventories switch to a beam search that answers in a couple of seconds
 but may miss the exact optimum (see below).
 
-When several raw/cooked/dried variants produce the same dish, the
-least-processed variant is preferred, so the planner does not roast or dry an
-ingredient before putting it in the pot unless doing so is actually useful.
-Pot results only depend on the tags a recipe can observe, so a variant whose
-recipe-relevant tags are identical to the raw form is not tried in the pot at
-all. Drying usually does not change crockpot values, so Jerky is used as a
-snack and the raw meat is still used for cooking. Dried forms that really do
-cook differently stay available: for example `Kelp Fronds` and `Drumstick`
-are named in some recipes and their dried forms cannot replace them, while
-drying an `Eel` lowers its fish value.
+When several raw/cooked/dried/killed variants produce the same dish, the
+variant needing the fewest prep steps is preferred, so the planner does not
+roast, dry or kill an ingredient before putting it in the pot unless doing so
+is actually useful. Pot results only depend on the tags a recipe can observe,
+so a variant whose recipe-relevant tags are identical to the raw form is not
+tried in the pot at all. Drying usually does not change crockpot values, so
+Jerky is used as a snack and the raw meat is still used for cooking. Dried
+forms that really do cook differently stay available: for example `Kelp
+Fronds` and `Drumstick` are named in some recipes and their dried forms cannot
+replace them, while drying an `Eel` lowers its fish value.
+
+Some ingredients are live creatures. The planner can kill them in the
+inventory and use their drop: `Rabbit` and `Moleworm` become `Morsel`, ocean
+fish become `Fish Morsel`, `Raw Fish`, `Cooked Fish Morsel`, `Leafy Meat`,
+`Popcorn` or `Corn`. The plan shows a `kill` step before the eat or cook step.
+Only the deterministic primary drop is modelled; chance drops and
+weight-dependent extra drops are ignored. Birds, butterflies and live eels are
+not crockpot ingredients in this data set, so they are not offered by the
+picker. Wobster also drops a `Dead Wobster`, but the live Wobster is already
+the pot ingredient and both forms have the same stats, so that kill is not
+offered.
 
 ## Uncompromising Mode
 
 [Uncompromising Mode](https://github.com/Uncompromising-Survival/UncompromisingMode)
 rebalances foods and changes some Crock Pot recipes. Select it with the header
 toggle, `--mode uc` in the CLI, or `"mode": "uc"` in the site API. The default
-remains `dst`, and the ordinary data and plans are unchanged when the mode is
-off. The browser remembers the choice in `localStorage` as `dstmeta.mode`.
+remains `dst`; the toggle only switches the data set and does not change the
+ordinary DST rules. The browser remembers the choice in `localStorage` as
+`dstmeta.mode`.
 
 The mode is a second data set rather than a fork of the engine:
 `food_calc/data/uc/` overlays the base files (`value.txt`, `food.txt`,
-`recipes.txt`, `warly_recipes.txt`, `cooked_table.txt`, `dried_table.txt` and
-`picker_order.txt`), and `food_calc/code/uc_rules.py` supplies the recipes whose
+`recipes.txt`, `warly_recipes.txt`, `cooked_table.txt`, `dried_table.txt`,
+`conversions.txt` and `picker_order.txt`), and `food_calc/code/uc_rules.py`
+supplies the recipes whose
 tests are not simple tag thresholds (either/or clauses, exact item counts or the
 mod's filler limits). Those rules join the normal priority matching, so ordinary
 priorities still decide conflicts: Deviled Eggs (priority 52) beats Monster
@@ -225,6 +238,10 @@ licensed CC BY-SA 4.0; where the page and the mod disagree the source wins
 Nerf (50 hunger) by default even though the wiki still marks it off by default,
 so UC mode uses 50. The wiki has no page or picture for Green Foliage, so its
 picker icon is a recoloured copy of the Foliage icon.
+
+The live-creature drops in `conversions.txt` come from the Don't Starve wiki's
+Rabbit, Moleworm and Ocean Fishes pages (DST revisions); the Wobster page
+confirms that the live Wobster, not Dead Wobster, is the Crock Pot ingredient.
 
 ### Known gaps
 
@@ -323,6 +340,7 @@ food_calc/
     recipes.txt     crockpot recipes
     cooked_table.txt  campfire raw -> cooked conversions
     dried_table.txt   drying rack raw -> dried conversions
+    conversions.txt   live creature -> food drop when killed
     over_time.txt     gradual part of a food's stats
     warly_recipes.txt Warly's Portable Crock Pot recipes
     picker_order.txt  ingredient order used by the website picker
@@ -393,6 +411,15 @@ Raw Fish: Fishy Jerky
 Kelp Fronds: Dried Kelp Fronds
 ```
 
+`conversions.txt` uses the same format for live creatures and the food they
+drop when killed in the inventory:
+
+```
+Rabbit: Morsel
+Moleworm: Morsel
+Ice Bream: Raw Fish
+```
+
 Conditions are comma-separated `<op> <number> <tag>` and are summed over the
 four slots. Supported operators: `>`, `>=`, `<`, `<=`, `==`, `=`. A recipe is
 rejected when any slot has an excluded tag; the valid recipe with the highest
@@ -428,6 +455,10 @@ Kabobs and the UC-only dishes) live in `food_calc/code/uc_rules.py`.
 * Recipe selection models tags and priorities, not cooking time or freshness.
 * Drying-rack times are therefore ignored; `--dried` only adds the dried food
   as an option.
+* Killing a creature uses its deterministic primary drop. Chance drops (a
+  Butterfly's 2% Butter) and weight-dependent extra fish drops are ignored,
+  and creatures that are not crockpot ingredients (birds, butterflies, live
+  eels) are not offered.
 * Stats restored over time are not stacking effects: eating several Jellybeans
   does not heal more than one. By default the planner counts only the stats a
   food gives on the first bite; enable over-time stats to count the full value

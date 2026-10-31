@@ -310,6 +310,25 @@ class SiteApiTest(unittest.TestCase):
         self.assertEqual(result["bestDish"]["stats"]["Hunger"], 75.0)
         self.assertEqual(result["plan"][0]["food"], "Boomberry Pancakes")
 
+    def test_rabbit_plan_shows_a_kill_step(self):
+        result = server.calculate(
+            {"ingredients": "Rabbit", "mode": "uc", "stat": "Health"}
+        )
+        kill = next(
+            step for step in result["plan"] if step["kind"] == "kill"
+        )
+        self.assertEqual(kill["source"], "Rabbit")
+        self.assertEqual(kill["food"], "Morsel")
+        self.assertEqual(kill["description"], "kill Rabbit -> Morsel")
+        self.assertEqual(kill["stats"]["Health"], 0.0)
+        self.assertTrue(
+            any(
+                step["kind"] == "roast" and step["food"] == "Cooked Morsel"
+                for step in result["plan"]
+            )
+        )
+        self.assertEqual(result["plan"][-1]["stats"]["Health"], 1.0)
+
     def test_uc_ingredients_are_rejected_in_dst(self):
         with self.assertRaises(ValueError):
             server.calculate(

@@ -1070,6 +1070,11 @@ a {
   background: color-mix(in srgb, var(--danger) 8%, transparent);
 }
 
+.step-kill .step-icon {
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+  background: color-mix(in srgb, var(--danger) 11%, transparent);
+}
+
 .step-eat .step-icon {
   border-color: color-mix(in srgb, var(--health) 26%, transparent);
   background: color-mix(in srgb, var(--health) 8%, transparent);

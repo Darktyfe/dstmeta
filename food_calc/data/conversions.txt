@@ -1,0 +1,26 @@
+# Live creatures that can be killed in the inventory, and the food they drop.
+# Only the deterministic primary drop is listed; chance drops and
+# weight-dependent extra drops are not modelled.
+Rabbit: Morsel
+Moleworm: Morsel
+Freshwater Fish: Fish Morsel
+Runty Guppy: Fish Morsel
+Needlenosed Squirt: Fish Morsel
+Bitty Baitfish: Fish Morsel
+Smolt Fry: Fish Morsel
+Spittlefish: Fish Morsel
+Scorching Sunfish: Cooked Fish Morsel
+Popperfish: Popcorn
+Fallounder: Leafy Meat
+Bloomfin Tuna: Leafy Meat
+Mudfish: Raw Fish
+Deep Bass: Raw Fish
+Dandy Lionfish: Raw Fish
+Black Catfish: Raw Fish
+Dappled Koi: Raw Fish
+Golden Koi: Raw Fish
+Ice Bream: Raw Fish
+Sweetish Fish: Raw Fish
+Corn Cod: Corn
+# Wobster -> Dead Wobster is not listed: the live Wobster is already the pot
+# ingredient and both forms have the same stats, so killing it adds nothing.
