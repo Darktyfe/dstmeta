@@ -45,6 +45,7 @@ MESSAGES = {
             "(max {max} kinds, got {kinds})."
         ),
         "errStat": "stat must be one of {stats}",
+        "errBadMode": "mode must be \"dst\" or \"uc\"",
         "errUnknownOne": (
             "{name!r} is not a food and should be removed from the ingredient "
             "list."
@@ -71,6 +72,7 @@ MESSAGES = {
             "(максимум {max} видов, получено {kinds})."
         ),
         "errStat": "Характеристика должна быть одной из: {stats}.",
+        "errBadMode": "Режим должен быть «dst» или «uc».",
         "errUnknownOne": (
             "«{name}» — не еда. Уберите его из списка ингредиентов."
         ),
@@ -153,14 +155,16 @@ def check_ingredient_types(names, lang="en"):
         )
 
 
-def resolve_names(names):
+def resolve_names(names, mode=alg.DEFAULT_MODE):
     """Return canonical names and a list of names the data files do not know."""
     resolved = []
     unknown = []
     for name in names:
-        canonical = alg.resolve_food_name(name)
+        canonical = alg.resolve_food_name(name, mode)
         if canonical is None:
-            canonical = RU_LOOKUP.get(ru_key(name))
+            translated = RU_LOOKUP.get(ru_key(name))
+            if translated is not None:
+                canonical = alg.resolve_food_name(translated, mode)
         if canonical is None:
             resolved.append(name)
             unknown.append(name)
@@ -169,20 +173,20 @@ def resolve_names(names):
     return resolved, unknown
 
 
-def stats_dict(name, over_time=True):
-    stats = alg.get_food_stats(name, over_time)
+def stats_dict(name, over_time=True, mode=alg.DEFAULT_MODE):
+    stats = alg.get_food_stats(name, over_time, mode)
     if stats is None:
         return {stat: 0.0 for stat in STAT_KEYS}
     return {stat: float(value) for stat, value in zip(STAT_KEYS, stats)}
 
 
-def action_dict(action, over_time=True):
+def action_dict(action, over_time=True, mode=alg.DEFAULT_MODE):
     kind, source, target = action
     result = {
         "kind": kind,
         "description": alg.describe_action(action),
         "food": target,
-        "stats": stats_dict(target, over_time),
+        "stats": stats_dict(target, over_time, mode),
     }
     if kind == "cook":
         result["ingredients"] = list(source)
@@ -191,10 +195,10 @@ def action_dict(action, over_time=True):
     return result
 
 
-def dish_dict(dish, combo, score, over_time=True):
+def dish_dict(dish, combo, score, over_time=True, mode=alg.DEFAULT_MODE):
     return {
         "name": dish,
-        "stats": stats_dict(dish, over_time),
+        "stats": stats_dict(dish, over_time, mode),
         "score": float(score),
         "combination": list(combo),
     }
@@ -205,6 +209,10 @@ def calculate(payload):
     if not isinstance(payload, dict):
         raise ValueError(message("en", "errBadRequest"))
     lang = normalize_lang(payload.get("lang"))
+    try:
+        mode = alg.get_mode(payload.get("mode"))
+    except ValueError:
+        raise ValueError(message(lang, "errBadMode")) from None
     names = parse_ingredients(payload.get("ingredients", ""), lang)
     stat = payload.get("stat", "Hunger")
     if stat not in STAT_KEYS:
@@ -217,7 +225,7 @@ def calculate(payload):
     over_time = not bool(payload.get("ignoreOverTime", True))
     losses = alg.normalize_losses(payload.get("losses"))
 
-    ingredients, unknown = resolve_names(names)
+    ingredients, unknown = resolve_names(names, mode)
     if unknown:
         if lang == "ru":
             unique = list(dict.fromkeys(unknown))
@@ -231,19 +239,23 @@ def calculate(payload):
 
     total, actions = alg.find_best_plan(
         ingredients, stat, warly, losses=losses, dried=dried,
-        over_time=over_time, milkmade=milkmade,
+        over_time=over_time, milkmade=milkmade, mode=mode,
     )
     totals = {
         key: float(value)
-        for key, value in alg.plan_totals(actions, over_time).items()
+        for key, value in alg.plan_totals(actions, over_time, mode).items()
     }
 
     dishes = []
     if len(ingredients) >= alg.SLOTS:
-        cooked = alg.cookable_dishes(ingredients, warly, dried, milkmade)
+        cooked = alg.cookable_dishes(
+            ingredients, warly, dried, milkmade, mode=mode
+        )
         for dish, combinations in cooked.items():
-            score = alg.get_food_stat(dish, stat, over_time)
-            dishes.append(dish_dict(dish, combinations[0], score, over_time))
+            score = alg.get_food_stat(dish, stat, over_time, mode)
+            dishes.append(
+                dish_dict(dish, combinations[0], score, over_time, mode)
+            )
         dishes.sort(key=lambda item: (-item["score"], item["name"]))
     total_dishes = len(dishes)
     dishes = dishes[:MAX_DISHES]
@@ -262,6 +274,7 @@ def calculate(payload):
         "ingredients": ingredients,
         "stat": stat,
         "lang": lang,
+        "mode": mode,
         "warly": warly,
         "dried": dried,
         "milkmade": milkmade,
@@ -271,7 +284,7 @@ def calculate(payload):
         "exact": exact,
         "total": float(total),
         "totals": totals,
-        "plan": [action_dict(action, over_time) for action in actions],
+        "plan": [action_dict(action, over_time, mode) for action in actions],
         "bestDish": best_dish,
         "dishes": dishes,
         "totalDishes": total_dishes,
@@ -282,15 +295,26 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "DSTMeta/0.6"
 
     def do_GET(self):
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/health":
             self.send_json(HTTPStatus.OK, {"status": "ok"})
             return
         if path == "/api/foods":
+            query = parse_qs(parsed.query)
+            try:
+                mode = alg.get_mode(query.get("mode", [alg.DEFAULT_MODE])[0])
+            except ValueError:
+                self.send_json(
+                    HTTPStatus.BAD_REQUEST,
+                    {"error": message("en", "errBadMode")},
+                )
+                return
             self.send_json(
                 HTTPStatus.OK,
                 {
-                    "foods": alg.picker_foods(),
+                    "mode": mode,
+                    "foods": alg.picker_foods(mode),
                     "stats": list(STAT_KEYS),
                     "maxIngredients": MAX_INGREDIENTS,
                     "maxIngredientTypes": MAX_INGREDIENT_TYPES,

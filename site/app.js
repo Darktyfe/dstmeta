@@ -18,6 +18,7 @@
     maxTypes: $("#max-types"),
     sample: $("#sample"),
     langButtons: $$(".lang-switch button"),
+    modeToggle: $("#uncompromising-toggle"),
     statButtons: $$(".segmented button"),
     warly: $("#warly"),
     ignoreDried: $("#ignore-dried"),
@@ -50,6 +51,7 @@
 
   const state = {
     lang: "en",
+    mode: "dst",
     stat: "Hunger",
     loading: false,
     data: null,
@@ -157,6 +159,32 @@
     if (saved) return saved;
     const browser = (navigator.language || "en").toLowerCase();
     return browser.startsWith("ru") ? "ru" : "en";
+  }
+
+  function storedMode() {
+    try {
+      const saved = localStorage.getItem("dstmeta.mode");
+      return saved === "dst" || saved === "uc" ? saved : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function applyMode(mode) {
+    state.mode = mode === "uc" ? "uc" : "dst";
+    try {
+      localStorage.setItem("dstmeta.mode", state.mode);
+    } catch (error) {
+      // Storage may be unavailable; the mode still works for this page.
+    }
+    const uncompromising = state.mode === "uc";
+    document.body.classList.toggle("uncompromising", uncompromising);
+    if (els.modeToggle) {
+      els.modeToggle.setAttribute(
+        "aria-pressed",
+        uncompromising ? "true" : "false",
+      );
+    }
   }
 
   async function loadRuNames() {
@@ -418,10 +446,15 @@
     els.picker.append(el("p", "picker-loading", t("pickerLoading")));
     els.pickerEmpty.hidden = true;
     try {
-      const response = await fetch("/api/foods", { cache: "no-store" });
+      const response = await fetch(
+        `/api/foods?mode=${encodeURIComponent(state.mode)}`,
+        { cache: "no-store" },
+      );
       if (!response.ok) throw new Error("foods");
       const data = await response.json();
       state.foods = Array.isArray(data.foods) ? data.foods.slice() : [];
+      if (data.mode === "dst" || data.mode === "uc") state.mode = data.mode;
+      pruneIngredientCounts();
       if (Number.isFinite(data.maxIngredients)) {
         state.maxIngredients = data.maxIngredients;
         els.maxIngredients.textContent = String(data.maxIngredients);
@@ -436,6 +469,13 @@
       state.loaded = false;
       showPickerLoadError();
     }
+  }
+
+  function pruneIngredientCounts() {
+    const available = new Set(state.foods);
+    Array.from(state.counts.keys()).forEach((name) => {
+      if (!available.has(name)) state.counts.delete(name);
+    });
   }
 
   function applyLanguage(lang) {
@@ -549,6 +589,7 @@
           ingredients,
           stat: state.stat,
           lang: state.lang,
+          mode: state.mode,
           warly: els.warly.checked,
           ignoreDried: els.ignoreDried.checked,
           ignoreMilkmade: els.ignoreMilkmade.checked,
@@ -730,6 +771,7 @@
     if (data.dried) meta.push(t("metaDried"));
     if (data.milkmade) meta.push(t("metaMilkmade"));
     if (data.overTime) meta.push(t("metaOverTime"));
+    if (data.mode === "uc") meta.push(t("metaUncompromising"));
     if (!data.exact) meta.push(t("metaBeam"));
     meta.push(t("metaEngine", { engine: data.engine === "C++" ? "C++" : "Python" }));
     els.planMeta.textContent = meta.join(" · ");
@@ -784,6 +826,14 @@
     button.addEventListener("click", () => switchLanguage(button.dataset.lang));
   });
 
+  els.modeToggle.addEventListener("click", () => {
+    applyMode(state.mode === "uc" ? "dst" : "uc");
+    clearError();
+    state.data = null;
+    els.results.hidden = true;
+    loadFoods();
+  });
+
   els.statButtons.forEach((button) => {
     button.addEventListener("click", () => setStat(button.dataset.stat));
   });
@@ -808,6 +858,7 @@
 
   async function init() {
     const lang = detectLang();
+    applyMode(storedMode() || "dst");
     // Russian names are also used by the picker's search box, so load them
     // even when the interface starts in English.
     await loadRuNames();

@@ -225,6 +225,12 @@ class SiteApiTest(unittest.TestCase):
         )
         self.assertEqual(missing, [])
 
+    def test_every_uc_food_has_a_russian_name(self):
+        missing = sorted(
+            set(server.alg.known_foods("uc")) - set(server.RU_NAMES)
+        )
+        self.assertEqual(missing, [])
+
     def test_russian_names_follow_the_wiki(self):
         self.assertEqual(server.RU_NAMES["Fish"], "Рыба")
         self.assertEqual(server.RU_NAMES["Morsel"], "Кусочек мяса")
@@ -284,6 +290,46 @@ class SiteApiTest(unittest.TestCase):
                 {"ingredients": payload, "stat": "Hunger", "lang": "ru"}
             )
         self.assertIn("Слишком много ингредиентов", str(caught.exception))
+
+    def test_mode_defaults_to_dst(self):
+        result = server.calculate({"ingredients": "Meat\nMeat\nMeat\nMeat"})
+        self.assertEqual(result["mode"], "dst")
+        self.assertEqual(result["bestDish"]["name"], "Meaty Stew")
+
+    def test_uc_mode_uses_uc_data(self):
+        result = server.calculate(
+            {
+                "ingredients": "Boomberry\nBoomberry\nEgg\nEgg",
+                "mode": "uc",
+            }
+        )
+        self.assertEqual(result["mode"], "uc")
+        self.assertEqual(result["bestDish"]["name"], "Boomberry Pancakes")
+        self.assertEqual(result["bestDish"]["stats"]["Hunger"], 75.0)
+        self.assertEqual(result["plan"][0]["food"], "Boomberry Pancakes")
+
+    def test_uc_ingredients_are_rejected_in_dst(self):
+        with self.assertRaises(ValueError):
+            server.calculate(
+                {"ingredients": "Boomberry\nBoomberry\nEgg\nEgg"}
+            )
+
+    def test_russian_uc_ingredient_is_accepted(self):
+        result = server.calculate(
+            {
+                "ingredients": "Бумберри\nБумберри\nЯйцо\nЯйцо",
+                "mode": "uc",
+                "lang": "ru",
+            }
+        )
+        self.assertEqual(result["bestDish"]["name"], "Boomberry Pancakes")
+
+    def test_unknown_mode_is_rejected(self):
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {"ingredients": "Meat\nMeat\nMeat\nMeat", "mode": "hardcore"}
+            )
+        self.assertIn("mode", str(caught.exception))
 
 
 class PickerTest(unittest.TestCase):
@@ -364,6 +410,45 @@ class PickerTest(unittest.TestCase):
         ]
         self.assertEqual(missing, [])
 
+    def test_uc_picker_offers_every_uc_ingredient_once(self):
+        data = server.alg._dataset("uc")
+        foods = server.alg.picker_foods("uc")
+        self.assertEqual(len(foods), len(set(foods)))
+        expected = set(data.values) - data.recipe_dishes - server.alg._HAT_DISHES
+        self.assertEqual(set(foods), expected)
+        for name in (
+            "Boomberry",
+            "Gloom Berry",
+            "Zaspberry",
+            "Rice Grains",
+            "Monster Morsel",
+            "Monster Egg",
+            "Scorpion Carapace",
+            "Green Foliage",
+        ):
+            self.assertIn(name, foods)
+
+    def test_uc_dishes_are_not_pot_ingredients(self):
+        foods = set(server.alg.picker_foods("uc"))
+        for dish in server.alg._dataset("uc").recipe_dishes:
+            self.assertNotIn(dish, foods)
+
+    def test_uc_picker_ingredients_have_icons(self):
+        icons = server.ROOT / "icons"
+        missing = [
+            name
+            for name in server.alg.picker_foods("uc")
+            if not (icons / f"{self.slug(name)}.png").is_file()
+        ]
+        self.assertEqual(missing, [])
+
+    def test_uc_group_names_have_no_duplicate_slugs(self):
+        slugs = {}
+        for name in server.alg.known_foods("uc"):
+            key = self.slug(name)
+            self.assertNotIn(key, slugs, f"{name} collides with {slugs.get(key)}")
+            slugs[key] = name
+
 class HttpEndpointTest(unittest.TestCase):
     """The HTTP surface the browser and simple health probes use."""
 
@@ -411,6 +496,25 @@ class HttpEndpointTest(unittest.TestCase):
         self.assertNotIn("Meatballs", payload["foods"])
         self.assertEqual(payload["maxIngredients"], server.MAX_INGREDIENTS)
         self.assertEqual(payload["maxIngredientTypes"], server.MAX_INGREDIENT_TYPES)
+
+    def test_foods_endpoint_can_select_uc_mode(self):
+        with urllib.request.urlopen(
+            self.base + "/api/foods?mode=uc", timeout=5
+        ) as response:
+            self.assertEqual(response.status, 200)
+            payload = json.load(response)
+        self.assertEqual(payload["mode"], "uc")
+        self.assertEqual(payload["foods"], server.alg.picker_foods("uc"))
+        self.assertIn("Boomberry", payload["foods"])
+        self.assertNotIn("Boomberry", server.alg.picker_foods())
+
+    def test_foods_endpoint_rejects_an_unknown_mode(self):
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(
+                self.base + "/api/foods?mode=hardcore", timeout=5
+            )
+        self.assertEqual(caught.exception.code, 400)
+        caught.exception.close()
 
     def test_icons_are_served(self):
         with urllib.request.urlopen(self.base + "/icons/meat.png", timeout=5) as response:

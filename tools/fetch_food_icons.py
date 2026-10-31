@@ -12,6 +12,7 @@ Usage::
 
     py tools/fetch_food_icons.py
     py tools/fetch_food_icons.py --force Meat Ice
+    py tools/fetch_food_icons.py --mode uc --force
 
 Only the standard library and Pillow are required.
 """
@@ -65,6 +66,26 @@ DIRECT_ICONS = {
     "Heat Gland": "https://dontstarve.wiki.gg/images/Heat_Gland_Dropped.png",
     "Small Fishy Jerky": "https://dontstarve.wiki.gg/images/Small_Fishy_Jerky.png",
     "Wobster": "https://dontstarve.wiki.gg/images/Wobster_%28DST%29.png",
+    # Uncompromising Mode adds its own foods.  They only appear in the picker
+    # when the site runs in UC mode.
+    "Boomberry": "https://uncompromisingmode.wiki.gg/images/Boomberry.png",
+    "Burnt Rice": "https://uncompromisingmode.wiki.gg/images/Burnt_Rice.png",
+    "Cooked Monster Egg": "https://uncompromisingmode.wiki.gg/images/Cooked_Monster_Egg.png",
+    "Cooked Monster Morsel": "https://uncompromisingmode.wiki.gg/images/Cooked_Monster_Morsel.png",
+    "Gloom Berry": "https://uncompromisingmode.wiki.gg/images/Gloom_Berry.png",
+    "Grilled Scorpion Carapace": "https://uncompromisingmode.wiki.gg/images/Grilled_Scorpion_Carapace.png",
+    "Monster Egg": "https://uncompromisingmode.wiki.gg/images/Monster_Egg.png",
+    "Monster Morsel": "https://uncompromisingmode.wiki.gg/images/Monster_Morsel.png",
+    "Rice Grains": "https://uncompromisingmode.wiki.gg/images/Rice_Grains.png",
+    "Scorpion Carapace": "https://uncompromisingmode.wiki.gg/images/Scorpion_Carapace.png",
+    "Small Monster Jerky": "https://uncompromisingmode.wiki.gg/images/Small_Monster_Jerky.png",
+    "Zaspberry": "https://uncompromisingmode.wiki.gg/images/Zaspberry.png",
+}
+
+# UC-only items without a wiki picture.  The icon is derived from an existing
+# one so the picker still has a distinct image for them.
+GENERATED_ICONS = {
+    "Green Foliage": ("Foliage", (0.62, 1.22, 0.6)),
 }
 
 
@@ -165,6 +186,22 @@ def square_icon(data: bytes) -> bytes:
     return buffer.getvalue()
 
 
+def tinted_icon(base: str, factors: tuple[float, float, float]) -> bytes:
+    """Recolour an existing icon, keeping its alpha channel."""
+    from PIL import Image
+
+    path = ICON_DIR / f"{slug(base)}.png"
+    image = Image.open(path).convert("RGBA")
+    red, green, blue, alpha = image.split()
+    red = red.point(lambda value: min(255, round(value * factors[0])))
+    green = green.point(lambda value: min(255, round(value * factors[1])))
+    blue = blue.point(lambda value: min(255, round(value * factors[2])))
+    recoloured = Image.merge("RGBA", (red, green, blue, alpha))
+    buffer = io.BytesIO()
+    recoloured.save(buffer, format="PNG", optimize=True)
+    return buffer.getvalue()
+
+
 def download(url: str) -> bytes:
     # Both wikis' image CDNs want a referer from the matching site.
     host = "dontstarve.wiki.gg" if "wiki.gg" in url else "dontstarve.fandom.com"
@@ -183,10 +220,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("names", nargs="*", help="only refresh these foods")
     parser.add_argument("--force", action="store_true", help="replace existing icons")
+    parser.add_argument(
+        "--mode",
+        choices=alg.MODES,
+        default=alg.DEFAULT_MODE,
+        help="food data to read (default: dst; uc adds Uncompromising Mode)",
+    )
     args = parser.parse_args()
 
     ICON_DIR.mkdir(parents=True, exist_ok=True)
-    foods = alg.known_foods()
+    foods = alg.known_foods(args.mode)
     wanted = list(dict.fromkeys(args.names or foods))
     unknown = sorted(set(wanted) - set(foods))
     if unknown:
@@ -202,16 +245,30 @@ def main() -> int:
         url = DIRECT_ICONS.get(name) or urls.get(name)
         if url:
             raw = square_icon(download(url))
+            label = "icon"
+        elif name in GENERATED_ICONS:
+            raw = tinted_icon(*GENERATED_ICONS[name])
+            label = "tint"
         else:
             if fallback is None:
                 fallback = placeholder()
             raw = fallback
+            label = "empty"
         path.write_bytes(raw)
         written += 1
-        print(f"{'icon ' if url else 'empty'} {name} -> {path.name}")
+        print(f"{label:5} {name} -> {path.name}")
 
-    missing = [name for name in foods if not (ICON_DIR / f"{slug(name)}.png").exists()]
-    print(f"\n{len(foods) - len(missing)}/{len(foods)} foods have icons ({written} written)")
+    required = foods
+    if args.mode != alg.DEFAULT_MODE:
+        # Dishes are rendered as text, so only the picker ingredients need art.
+        required = alg.picker_foods(args.mode)
+    missing = [
+        name for name in required if not (ICON_DIR / f"{slug(name)}.png").exists()
+    ]
+    print(
+        f"\n{len(required) - len(missing)}/{len(required)} foods have icons "
+        f"({written} written)"
+    )
     if missing:
         print("missing:", ", ".join(missing))
         return 1

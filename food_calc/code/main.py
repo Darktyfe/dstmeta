@@ -5,6 +5,7 @@ Examples
 ``py food_calc/code/main.py Meat Berries Berries Berries``
 ``py food_calc/code/main.py --stat Sanity Ice Butter Honey Berries``
 ``py food_calc/code/main.py --dried --stat Sanity Meat Meat Meat Meat``
+``py food_calc/code/main.py --mode uc Boomberry Boomberry Egg Egg``
 ``py food_calc/code/main.py --check``
 
 Without ingredients the program asks for them interactively.
@@ -33,12 +34,12 @@ def get_user_food():
     return food
 
 
-def resolve_names(names):
+def resolve_names(names, mode=alg.DEFAULT_MODE):
     """Map names to their canonical spelling and collect unknown ones."""
     resolved = []
     unknown = []
     for name in names:
-        canonical = alg.resolve_food_name(name)
+        canonical = alg.resolve_food_name(name, mode)
         if canonical is None:
             resolved.append(name)
             unknown.append(name)
@@ -47,8 +48,8 @@ def resolve_names(names):
     return resolved, unknown
 
 
-def format_stats(dish, over_time=True):
-    stats = alg.get_food_stats(dish, over_time)
+def format_stats(dish, over_time=True, mode=alg.DEFAULT_MODE):
+    stats = alg.get_food_stats(dish, over_time, mode)
     if stats is None:
         return "stats unknown"
     hunger, sanity, health = stats
@@ -65,10 +66,10 @@ def non_negative(text):
     return value
 
 
-def run_check():
-    warnings = alg.data_warnings()
+def run_check(mode=alg.DEFAULT_MODE):
+    warnings = alg.data_warnings(mode)
     if not warnings:
-        print("Data files look consistent.")
+        print(f"Data files look consistent ({alg.get_mode(mode)} mode).")
         return 0
     for warning in warnings:
         print(f"warning: {warning}")
@@ -89,6 +90,12 @@ def main(argv=None):
         choices=alg.STAT_NAMES,
         default="Hunger",
         help="stat to optimize (default: Hunger)",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=alg.MODES,
+        default=alg.DEFAULT_MODE,
+        help="game data to use (default: dst; uc adds Uncompromising Mode)",
     )
     parser.add_argument(
         "--warly",
@@ -139,10 +146,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.check:
-        return run_check()
+        return run_check(args.mode)
 
     ingredients = args.ingredients or get_user_food()
-    ingredients, unknown = resolve_names(ingredients)
+    ingredients, unknown = resolve_names(ingredients, args.mode)
     if unknown:
         print(f"error: {alg.unknown_food_message(unknown)}", file=sys.stderr)
         return 1
@@ -156,7 +163,7 @@ def main(argv=None):
         return 1
 
     dishes = alg.cookable_dishes(
-        ingredients, args.warly, args.dried, args.milkmade
+        ingredients, args.warly, args.dried, args.milkmade, args.mode
     )
     if not dishes:
         print("Nothing can be cooked from these ingredients.")
@@ -164,22 +171,24 @@ def main(argv=None):
         ranking = sorted(
             dishes,
             key=lambda dish: (
-                -alg.get_food_stat(dish, args.stat, args.over_time),
+                -alg.get_food_stat(dish, args.stat, args.over_time, args.mode),
                 dish,
             ),
         )
         print(f"Cookable dishes ({len(ranking)}):")
         for dish in ranking:
-            score = alg.get_food_stat(dish, args.stat, args.over_time)
+            score = alg.get_food_stat(
+                dish, args.stat, args.over_time, args.mode
+            )
             print(
-                f"  {dish}: {format_stats(dish, args.over_time)}"
+                f"  {dish}: {format_stats(dish, args.over_time, args.mode)}"
                 f"  [{args.stat.lower()} {score:g},"
                 f" {len(dishes[dish])} combination(s)]"
             )
 
     best = alg.best_single_dish(
         ingredients, args.stat, args.warly, args.dried,
-        args.over_time, args.milkmade,
+        args.over_time, args.milkmade, args.mode,
     )
     if best is not None:
         score, dish, combo = best
@@ -201,8 +210,9 @@ def main(argv=None):
         dried=args.dried,
         over_time=args.over_time,
         milkmade=args.milkmade,
+        mode=args.mode,
     )
-    totals = alg.plan_totals(actions, args.over_time)
+    totals = alg.plan_totals(actions, args.over_time, args.mode)
     print()
     if alg.needs_fast_plan(ingredients):
         print(
@@ -219,7 +229,7 @@ def main(argv=None):
         else:
             print(
                 f"  {alg.describe_action(action)}: "
-                f"{format_stats(action[2], args.over_time)}"
+                f"{format_stats(action[2], args.over_time, args.mode)}"
             )
     print(
         "  totals: "
