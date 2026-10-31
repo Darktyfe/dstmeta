@@ -21,11 +21,13 @@ Then open <http://127.0.0.1:8000>. Use `--port 8080` to change the port and
 `--open` to launch the browser automatically. The page has the same options as
 the CLI: choose `Hunger`, `Sanity` or `Health`, enable Warly's exclusive
 recipes, turn drying-rack variants on or off, ignore the Milkmade Hat, ignore
-stats that are restored over time, and set permissible losses. The web planner
-accepts up to 100 ingredients made of at most 24 different kinds per
-calculation; raise those limits with `--max-ingredients N` and `--max-types N`.
-The CLI has no caps. `GET /health` answers `{"status": "ok"}` for local
-monitors and extensions that probe the server.
+stats that are restored over time, and set permissible losses. The
+**Uncompromising Mode** toggle in the header switches to the mod's data (see
+below); it is off by default. The web planner accepts up to 100 ingredients
+made of at most 24 different kinds per calculation; raise those limits with
+`--max-ingredients N` and `--max-types N`. The CLI has no caps. `GET /health`
+answers `{"status": "ok"}` for local monitors and extensions that probe the
+server.
 
 ### Ingredient picker
 
@@ -45,10 +47,12 @@ magic and seed value, lightest first. That order lives in
 appended alphabetically instead of disappearing.
 
 The icons are trimmed 64×64 PNGs downloaded from the Don't Starve wiki and
-committed under `site/icons/`. `GET /api/foods` returns the ordered list:
+committed under `site/icons/`. `GET /api/foods` returns the ordered list, and
+`GET /api/foods?mode=uc` returns the Uncompromising Mode list:
 
 ```json
 {
+  "mode": "dst",
   "foods": ["Barnacles", "Cooked Barnacles", "Morsel", "Cooked Morsel"],
   "maxIngredients": 100,
   "maxIngredientTypes": 24
@@ -59,14 +63,17 @@ To refresh icons after changing the food data, run
 `py tools\fetch_food_icons.py` (it needs Pillow). Most icons come from the
 Fandom wiki; the handful where it has no picture or the wrong one (Heat Gland,
 Cooked Heat Gland, Wobster, the fishy jerkies, Dark Petals and the dried
-flowers and foliage) are fetched from wiki.gg via `DIRECT_ICONS`.
+flowers and foliage) are fetched from wiki.gg via `DIRECT_ICONS`. The
+Uncompromising Mode ingredients use `py tools\fetch_food_icons.py --mode uc
+--force`.
 
 ### Languages
 
 The header has an `EN` / `RU` switch. It remembers the choice in
 `localStorage`; a first visit follows the browser language. The interface
 strings live in `site/i18n.js`, and `site/names_ru.json` maps every food name
-to its Russian name. Russian names come from the Russian Don't Starve wiki
+to its Russian name, including the Uncompromising Mode items and dishes.
+Russian names come from the Russian Don't Starve wiki
 (<https://dont-starve.fandom.com/ru>), with the game's official translation
 used as a fallback where the wiki has no separate page.
 
@@ -90,6 +97,7 @@ py food_calc\code\main.py Meat Berries Berries Berries
 py food_calc\code\main.py --stat Sanity Ice Butter Honey Berries
 py food_calc\code\main.py --warly Asparagus Asparagus Ice Ice
 py food_calc\code\main.py --dried --stat Sanity Meat Meat Meat Meat
+py food_calc\code\main.py --mode uc Boomberry Boomberry Egg Egg
 py food_calc\code\main.py --check
 ```
 
@@ -102,8 +110,10 @@ py food_calc\code\main.py
 ```
 
 `--stat` chooses the stat to optimize (`Hunger`, `Sanity` or `Health`, default
-`Hunger`). `--warly` adds Warly's Portable Crock Pot exclusive recipes, which
-normal characters cannot cook. `--dried` adds drying-rack variants such as
+`Hunger`). `--mode` chooses the data set: `dst` (default, ordinary Don't Starve
+Together) or `uc` (Uncompromising Mode, see below). `--warly` adds Warly's
+Portable Crock Pot exclusive recipes, which normal characters cannot cook.
+`--dried` adds drying-rack variants such as
 `Meat` -> `Jerky` and `Kelp Fronds` -> `Dried Kelp Fronds`; it is off by
 default because a rack is much slower than a campfire. On the site the same
 option is the **Ignore Dried variants** switch, which starts enabled.
@@ -152,6 +162,60 @@ snack and the raw meat is still used for cooking. Dried forms that really do
 cook differently stay available: for example `Kelp Fronds` and `Drumstick`
 are named in some recipes and their dried forms cannot replace them, while
 drying an `Eel` lowers its fish value.
+
+## Uncompromising Mode
+
+[Uncompromising Mode](https://github.com/Uncompromising-Survival/UncompromisingMode)
+rebalances foods and changes some Crock Pot recipes. Select it with the header
+toggle, `--mode uc` in the CLI, or `"mode": "uc"` in the site API. The default
+remains `dst`, and the ordinary data and plans are unchanged when the mode is
+off. The browser remembers the choice in `localStorage` as `dstmeta.mode`.
+
+The mode is a second data set rather than a fork of the engine:
+`food_calc/data/uc/` overlays the base files (`value.txt`, `food.txt`,
+`cooked_table.txt`, `dried_table.txt` and `picker_order.txt`), and
+`food_calc/code/uc_rules.py` supplies the recipes whose tests are not simple tag
+thresholds (either/or clauses, exact item counts or the mod's filler limits).
+Those rules join the normal priority matching, so ordinary priorities still
+decide conflicts: Deviled Eggs (priority 52) beats Monster Lasagna (51), and
+Monster Lasagna beats Meaty Stew.
+
+What the mode changes:
+
+* Monster meat is stronger: raw/cooked monster meat gives `2` monster and `1`
+  meat, monster morsel gives `2` monster and `0.5` meat, and monster jerky gives
+  `1.5` monster. Monster eggs are food too.
+* Monster Lasagna and Kabobs use the mod's stricter tests, including its
+  ice/twig filler limits. The DST versions of those two rows are disabled in UC
+  mode instead of remaining as a fallback.
+* Fourteen UC-only dishes are added: Boomberry Pancakes, California King,
+  Deviled Eggs, Devils Fruit Cake, Gloomberry Jam, Hard Shell Tacos, Liceloaf,
+  Seafood Paella, Simple Salad, Snot Roast, Snowcone, Steamed Hams, Stuffed
+  Peeper Poppers and Zazpberry Parfait.
+* Their ingredients (boomberries, gloom berries, zaspberries, rice, monster
+  morsels and eggs, scorpion carapace, green foliage and forget-me-nots) become
+  picker entries with their UC food values.
+
+### Data provenance
+
+UC item tags and recipe tests come from the mod source
+(`init/init_food/init_crockpot.lua`, `init/init_food/monsterfoods.lua` and
+`init/init_tuning.lua`), with its options in the default enabled state. UC dish
+stats come from the Uncompromising Mode wiki's Crock Pot page, revision 13949,
+which is licensed CC BY-SA 4.0. The wiki has no page or picture for Green
+Foliage, so its picker icon is a recoloured copy of the Foliage icon.
+
+### Known gaps
+
+* Beefalo Wings is not implemented: the base data has no Beefalo Horn
+  ingredient value, so the recipe could never be built.
+* Theater Corn's three-for-one yield is not modelled.
+* Monster Tartare and the other Warly rebalances are deferred; only the
+  recipes listed above are ported.
+* The mod's global `GENERALCROCKBLOCKER` filler limits are not applied to
+  unchanged DST recipes. They constrain the UC-only rules that call them, so a
+  few two-ice or two-twig combinations that the mod would reject can still
+  match an ordinary recipe here.
 
 ## The plan engine: C++ with Python fallback
 
@@ -210,6 +274,7 @@ git. On Unix-like systems any `g++` works; the loader picks up
 
 ```bat
 py food_calc\code\test_alg.py
+py food_calc\code\test_uc.py
 py site\test_site.py
 ```
 
@@ -220,9 +285,11 @@ food_calc/
   code/
     basic_func.py   parsing of the data files
     alg.py          tag matching, recipe selection, search
+    uc_rules.py     Uncompromising Mode recipes and filler limits
     cpp_engine.py   ctypes loader for the native engine
     main.py         command line interface
     test_alg.py     unit tests for the engine
+    test_uc.py      unit tests for Uncompromising Mode
   native/
     engine.cpp      C++ port of the plan search
     engine.dll      compiled library (Windows); libengine.so / libengine.dylib
@@ -235,6 +302,7 @@ food_calc/
     over_time.txt     gradual part of a food's stats
     warly_recipes.txt Warly's Portable Crock Pot recipes
     picker_order.txt  ingredient order used by the website picker
+    uc/               Uncompromising Mode overlays for the files above
 site/
   index.html        calculator page
   styles.css        page theme
@@ -320,6 +388,12 @@ Turkey Dinner; >= 2.0 !Drumstick, > 1.0 *Meat, >= 0.5 *Fruit; ; 10
 
 `*Monster`, `*Monster Food` and `*Diary` are accepted as aliases of
 `*Monster Meat` and `*Dairy`.
+
+`food_calc/data/uc/` uses the same syntax for Uncompromising Mode. The loader
+reads the base file first and then merges the overlay: dictionary files replace
+entries with the same key, while `picker_order.txt` is appended in overlay
+order. Rules that cannot be written as tag thresholds live in
+`food_calc/code/uc_rules.py`, so there is no `uc/recipes.txt`.
 
 ## Notes
 

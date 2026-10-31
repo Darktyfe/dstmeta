@@ -1,0 +1,4 @@
+Monster Morsel: Cooked Monster Morsel
+Monster Egg: Cooked Monster Egg
+Scorpion Carapace: Grilled Scorpion Carapace
+Rice Grains: Burnt Rice

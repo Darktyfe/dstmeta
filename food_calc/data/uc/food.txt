@@ -1,0 +1,26 @@
+Monster Morsel: 9.375, -10, -15
+Cooked Monster Morsel: 9.375, -10, -5
+Small Monster Jerky: 9.375, -5, -5
+Monster Egg: 9.4, -10, -15
+Cooked Monster Egg: 9.4, -5, -5
+Scorpion Carapace: 18.8, -20, -20
+Grilled Scorpion Carapace: 18.8, -10, -10
+Boomberry: 18.8, 0, 1
+Gloom Berry: 25, -30, 3
+Zaspberry: 25, -25, 20
+Rice Grains: 9.8, 0, 0
+Burnt Rice: 12.5, 0, 1
+Boomberry Pancakes: 75, 20, 5
+California King: 62.5, -15, 3
+Deviled Eggs: 18.75, -20, -15
+Devils Fruit Cake: 62.5, -0.6, 60
+Gloomberry Jam: 37.5, 15, 40
+Hard Shell Tacos: 37.5, 5, 20
+Liceloaf: 62.5, 0, 0
+Seafood Paella: 75, 60, 20
+Simple Salad: 6.25, 5, 3
+Snot Roast: 150, 5, 3
+Snowcone: 9.375, 5, 3
+Steamed Hams: 37.5, 15, 40
+Stuffed Peeper Poppers: 37.5, -15, -3
+Zazpberry Parfait: 37.5, 15, 40

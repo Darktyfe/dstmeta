@@ -11,6 +11,8 @@ window.DSTMETA_I18N = {
     metaDescription:
       "Plan the best use of your Don't Starve Together food: crockpot dishes, campfire roasts, drying rack foods, and raw snacks.",
     language: "Language",
+    uncompromising: "Uncompromising Mode",
+    uncompromisingToggle: "Toggle Uncompromising Mode",
 
     eyebrow: "Chest to plate",
     headline: "Make every ingredient count.",
@@ -124,6 +126,7 @@ window.DSTMETA_I18N = {
 
     metaWarly: "Warly recipes included",
     metaStandard: "standard recipes",
+    metaUncompromising: "Uncompromising Mode rules",
     metaDried: "drying rack enabled",
     metaMilkmade: "Milkmade Hat allowed",
     metaOverTime: "over-time stats counted",
@@ -151,6 +154,8 @@ window.DSTMETA_I18N = {
       "Спланируйте, как лучше использовать еду в Don't Starve Together: блюда " +
       "казана, жарка на костре, сушка и сырые перекусы.",
     language: "Язык",
+    uncompromising: "Бескомпромиссный режим",
+    uncompromisingToggle: "Переключить бескомпромиссный режим",
 
     eyebrow: "Из сундука на тарелку",
     headline: "Пусть каждый ингредиент приносит пользу.",
@@ -265,6 +270,7 @@ window.DSTMETA_I18N = {
 
     metaWarly: "с рецептами Варли",
     metaStandard: "обычные рецепты",
+    metaUncompromising: "правила бескомпромиссного режима",
     metaDried: "сушка включена",
     metaMilkmade: "молочная шапка разрешена",
     metaOverTime: "постепенные эффекты учтены",

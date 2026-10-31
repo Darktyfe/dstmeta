@@ -1,0 +1,19 @@
+Monster Meat: *Meat - 1, *Monster Meat - 2
+Cooked Monster Meat: *Meat - 1, *Monster Meat - 2
+Monster Jerky: *Meat - 1, *Monster Meat - 1.5
+Monster Morsel: *Meat - 0.5, *Monster Meat - 2
+Cooked Monster Morsel: *Meat - 0.5, *Monster Meat - 2
+Small Monster Jerky: *Meat - 0.5, *Monster Meat - 1.5
+Monster Egg: *Egg - 1, *Monster Meat - 1.5
+Cooked Monster Egg: *Egg - 1, *Monster Meat - 1.5
+Scorpion Carapace: *Meat - 0.5, *Monster Meat - 2, *Insectoid - 0.5
+Grilled Scorpion Carapace: *Meat - 0.5, *Monster Meat - 2, *Insectoid - 0.5
+Butterfly Wings: *Decoration - 2, *Insectoid - 0.5
+Boomberry: *Fruit - 1
+Gloom Berry: *Fruit - 1
+Zaspberry: *Fruit - 1
+Rice Grains: *Rice - 1, *Vegetable - 1
+Burnt Rice: *Vegetable - 1
+Foliage: *Foliage - 1
+Green Foliage: *Foliage - 1
+Forget-Me-Lots: *Decoration - 1, *Foliage - 1
