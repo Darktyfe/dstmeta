@@ -91,7 +91,7 @@ Moon Shroom: 12.5, 10, 0
 Cooked Moon Shroom: -12.5, -10, 0
 Moon Moth Wings: 9.375, 15, 8
 Morsel: 12.5, -10, 0
-Cooked Morsel: 12.5, -10, 0
+Cooked Morsel: 12.5, 0, 1
 Small Fishy Jerky: 12.5, 20, 15
 Small Jerky: 12.5, 10, 8
 Freshwater Fish: 12.5, 0, 1
