@@ -173,12 +173,12 @@ off. The browser remembers the choice in `localStorage` as `dstmeta.mode`.
 
 The mode is a second data set rather than a fork of the engine:
 `food_calc/data/uc/` overlays the base files (`value.txt`, `food.txt`,
-`cooked_table.txt`, `dried_table.txt` and `picker_order.txt`), and
-`food_calc/code/uc_rules.py` supplies the recipes whose tests are not simple tag
-thresholds (either/or clauses, exact item counts or the mod's filler limits).
-Those rules join the normal priority matching, so ordinary priorities still
-decide conflicts: Deviled Eggs (priority 52) beats Monster Lasagna (51), and
-Monster Lasagna beats Meaty Stew.
+`recipes.txt`, `warly_recipes.txt`, `cooked_table.txt`, `dried_table.txt` and
+`picker_order.txt`), and `food_calc/code/uc_rules.py` supplies the recipes whose
+tests are not simple tag thresholds (either/or clauses, exact item counts or the
+mod's filler limits). Those rules join the normal priority matching, so ordinary
+priorities still decide conflicts: Deviled Eggs (priority 52) beats Monster
+Lasagna (51), and Monster Lasagna beats Meaty Stew.
 
 What the mode changes:
 
@@ -195,27 +195,51 @@ What the mode changes:
 * Their ingredients (boomberries, gloom berries, zaspberries, rice, monster
   morsels and eggs, scorpion carapace, green foliage and forget-me-nots) become
   picker entries with their UC food values.
+* The vanilla foods listed on the wiki's Balance Changes/Food page use the
+  mod's rebalanced stats: for example Ice Cream gives 100 sanity, Meaty Stew
+  still gives 150 hunger, Bunny Stew is 37.5/5/20, and seeds, honey, cactus
+  flesh, eggplant, roasted potato/toma root, cooked monster meat, rot, butterfly
+  wings and the winter koalefant trunk all use their UC values. The overlay
+  also fixes a few base-data mistakes in UC mode (Barnacle Nigiri sanity,
+  Figkabab hunger/sanity, Powdercake health and Winter Koalefant Trunk health).
+* Vanilla recipe tests are replaced where the mod changes them: Barnacle Nigiri
+  no longer needs an egg, Bunny Stew needs a raw Rabbit and exactly two frozen
+  items, Figkabab rejects ice/foliage/insectoids, Fishsticks needs one fish and
+  at most 3.5 monster, Figgy Frogwich and Froggle Bunwich get priority 20 and 6,
+  Meaty Stew needs 3.5 meat, Pierogi needs 1.5 vegetables, Seafood Gumbo needs
+  three fish and three meat at priority 31, Surf 'n' Turf needs two fish, Tall
+  Scotch Eggs need three vegetables, Unagi moves to priority 52, Bacon and Eggs
+  to 9, and Warly's Monster Tartare needs four monster value at priority 52.
+* Beefalo Horn (1 meat), Rabbit (0.5 meat) and Fire Nettle Fronds (1 foliage)
+  become crockpot ingredients, and all three koalefant trunks give 2 meat.
 
 ### Data provenance
 
-UC item tags and recipe tests come from the mod source
-(`init/init_food/init_crockpot.lua`, `init/init_food/monsterfoods.lua` and
-`init/init_tuning.lua`), with its options in the default enabled state. UC dish
-stats come from the Uncompromising Mode wiki's Crock Pot page, revision 13949,
-which is licensed CC BY-SA 4.0. The wiki has no page or picture for Green
-Foliage, so its picker icon is a recoloured copy of the Foliage icon.
+UC item tags and recipe tests come from the mod's `live` branch
+(`init/init_food/init_crockpot.lua`, `init/init_food/init_food_changes.lua`,
+`init/init_food/monsterfoods.lua` and `init/init_tuning.lua`), with its options
+in the default enabled state. UC dish and basic-food stats come from the
+Uncompromising Mode wiki's Balance Changes/Food page, revision 11896, which is
+licensed CC BY-SA 4.0; where the page and the mod disagree the source wins
+(for example raw Green Cap keeps 0 health). The live source enables the Meatball
+Nerf (50 hunger) by default even though the wiki still marks it off by default,
+so UC mode uses 50. The wiki has no page or picture for Green Foliage, so its
+picker icon is a recoloured copy of the Foliage icon.
 
 ### Known gaps
 
-* Beefalo Wings is not implemented: the base data has no Beefalo Horn
-  ingredient value, so the recipe could never be built.
+* Beefalo Wings is not implemented; it is a UC-only dish rather than part of
+  the Food balance page.
 * Theater Corn's three-for-one yield is not modelled.
-* Monster Tartare and the other Warly rebalances are deferred; only the
-  recipes listed above are ported.
+* Food types, favorite-food bonuses and the horrible-food table are not part
+  of the additive stat model, so the mod's Veggie/Generic swaps for Ice Cream,
+  Taffy, Frozen Banana Daiquiri and Mushy Cake are ignored.
 * The mod's global `GENERALCROCKBLOCKER` filler limits are not applied to
-  unchanged DST recipes. They constrain the UC-only rules that call them, so a
-  few two-ice or two-twig combinations that the mod would reject can still
-  match an ordinary recipe here.
+  unchanged DST recipes (including Meatballs) or to overlay rows written as
+  plain tag thresholds (Barnacle Nigiri, Figgy Frogwich, Fishsticks, Froggle
+  Bunwich, Unagi and Monster Tartare). They are applied to the UC-only rules
+  and Kabobs, so a few two-ice or two-twig combinations that the mod would
+  reject can still match a recipe here.
 
 ## The plan engine: C++ with Python fallback
 
@@ -391,9 +415,10 @@ Turkey Dinner; >= 2.0 !Drumstick, > 1.0 *Meat, >= 0.5 *Fruit; ; 10
 
 `food_calc/data/uc/` uses the same syntax for Uncompromising Mode. The loader
 reads the base file first and then merges the overlay: dictionary files replace
-entries with the same key, while `picker_order.txt` is appended in overlay
-order. Rules that cannot be written as tag thresholds live in
-`food_calc/code/uc_rules.py`, so there is no `uc/recipes.txt`.
+entries with the same key, `recipes.txt`/`warly_recipes.txt` drop every base
+rule for a dish the overlay mentions, and `picker_order.txt` is appended in
+overlay order. Rules that cannot be written as tag thresholds (Monster Lasagna,
+Kabobs and the UC-only dishes) live in `food_calc/code/uc_rules.py`.
 
 ## Notes
 

@@ -37,6 +37,47 @@ UC_ONLY = {
     "Zazpberry Parfait": ("Zaspberry", "Honey", "Butter", "Carrot"),
 }
 
+# Vanilla foods and dishes the mod rebalances (wiki Balance Changes/Food).
+REBALANCED_STATS = {
+    "Asparagus Soup": (25.0, 20.0, 30.0),
+    "Barnacle Nigiri": (37.5, 15.0, 40.0),
+    "Barnacle Pita": (37.5, 15.0, 8.0),
+    "Creamy Potato Purée": (75.0, 15.0, 20.0),
+    "Fancy Spiralled Tubers": (25.0, 15.0, 3.0),
+    "Figgy Frogwich": (37.5, 33.0, 3.0),
+    "Figkabab": (37.5, 10.0, 20.0),
+    "Fish Tacos": (75.0, 5.0, 20.0),
+    "Flower Salad": (12.5, 5.0, 60.0),
+    "Ice Cream": (25.0, 100.0, 0.0),
+    "Meatballs": (50.0, 5.0, 3.0),
+    "Powdercake": (0.0, 0.0, -3.0),
+    "Puffed Potato Soufflé": (50.0, 5.0, 60.0),
+    "Pumpkin Cookies": (50.0, 33.0, 15.0),
+    "Salsa Fresca": (25.0, 50.0, 3.0),
+    "Seafood Gumbo": (100.0, 5.0, 5.0),
+    "Stuffed Eggplant": (50.0, 5.0, 20.0),
+    "Stuffed Pepper Poppers": (25.0, -5.0, 40.0),
+    "Veggie Burger": (100.0, 5.0, 3.0),
+}
+
+REBALANCED_BASIC_STATS = {
+    "Butterfly Wings": (2.5, 0.0, 1.0),
+    "Cactus Flesh": (12.5, -5.0, -8.0),
+    "Cooked Cactus Flesh": (12.5, 5.0, 1.0),
+    "Eggplant": (18.75, 0.0, 8.0),
+    "Braised Eggplant": (18.75, 0.0, 12.0),
+    "Fire Nettle Fronds": (0.0, -5.0, -15.0),
+    "Cooked Green Cap": (0.0, 15.0, -5.0),
+    "Winter Koalefant Trunk": (37.5, 0.0, 30.0),
+    "Cooked Monster Meat": (18.75, -10.0, -8.0),
+    "Roasted Potato": (18.75, 0.0, 8.0),
+    "Roasted Toma Root": (12.5, 0.0, 8.0),
+    "Rot": (-10.0, -5.0, -5.0),
+    "Seeds": (1.5, 0.0, 0.0),
+    "Toasted Seeds": (1.5, 0.0, 1.0),
+    "Honey": (2.5, 0.0, 1.0),
+}
+
 
 class UCRecipesTest(unittest.TestCase):
     def test_uc_only_dishes(self):
@@ -149,6 +190,155 @@ class UCRecipesTest(unittest.TestCase):
             alg.cook(("Twigs", "Twigs", "Carrot", "Berry"), mode="uc"),
             "Snowcone",
         )
+
+
+class UCRebalanceTest(unittest.TestCase):
+    def test_rebalanced_dish_stats(self):
+        for dish, stats in REBALANCED_STATS.items():
+            with self.subTest(dish=dish):
+                self.assertEqual(alg.get_food_stats(dish, mode="uc"), stats)
+
+    def test_rebalanced_basic_food_stats(self):
+        for food, stats in REBALANCED_BASIC_STATS.items():
+            with self.subTest(food=food):
+                self.assertEqual(alg.get_food_stats(food, mode="uc"), stats)
+
+    def test_rebalanced_stats_do_not_leak_into_dst(self):
+        # Barnacle Nigiri, Figkabab and Powdercake already disagree with the
+        # wiki in the base files; the overlay only corrects them in UC mode.
+        self.assertEqual(alg.get_food_stats("Barnacle Nigiri"), (37.5, 5.0, 40.0))
+        self.assertEqual(alg.get_food_stats("Figkabab"), (25.0, 15.0, 20.0))
+        self.assertEqual(alg.get_food_stats("Powdercake"), (0.0, 0.0, 3.0))
+        self.assertEqual(alg.get_food_stat("Seeds", "Hunger"), 4.6875)
+
+    def test_barnacle_nigiri_no_longer_needs_eggs(self):
+        ingredients = ("Barnacles", "Kelp Fronds", "Carrot", "Carrot")
+        self.assertEqual(alg.cook(ingredients), "Barnacle Pita")
+        self.assertEqual(alg.cook(ingredients, mode="uc"), "Barnacle Nigiri")
+
+    def test_bunny_stew_needs_rabbit_and_two_frozen_items(self):
+        self.assertEqual(
+            alg.cook(("Rabbit", "Ice", "Ice", "Carrot"), mode="uc"),
+            "Bunny Stew",
+        )
+        self.assertNotEqual(
+            alg.cook(("Rabbit", "Ice", "Carrot", "Carrot"), mode="uc"),
+            "Bunny Stew",
+        )
+        # DST only looks at the meat and ice values, so a morsel works.
+        self.assertEqual(alg.cook(("Morsel", "Ice", "Ice", "Carrot")), "Bunny Stew")
+        self.assertNotEqual(
+            alg.cook(("Morsel", "Ice", "Ice", "Carrot"), mode="uc"),
+            "Bunny Stew",
+        )
+
+    def test_meaty_stew_needs_three_and_a_half_meat(self):
+        self.assertEqual(alg.cook(("Meat", "Meat", "Meat", "Carrot")), "Meaty Stew")
+        self.assertEqual(
+            alg.cook(("Meat", "Meat", "Meat", "Carrot"), mode="uc"),
+            "Meatballs",
+        )
+        self.assertEqual(
+            alg.cook(("Meat", "Meat", "Meat", "Morsel"), mode="uc"),
+            "Meaty Stew",
+        )
+
+    def test_pierogi_needs_one_and_a_half_vegetables(self):
+        self.assertEqual(alg.cook(("Egg", "Meat", "Carrot", "Ice")), "Pierogi")
+        self.assertNotEqual(
+            alg.cook(("Egg", "Meat", "Carrot", "Ice"), mode="uc"),
+            "Pierogi",
+        )
+        self.assertEqual(
+            alg.cook(("Egg", "Meat", "Carrot", "Carrot"), mode="uc"),
+            "Pierogi",
+        )
+
+    def test_seafood_gumbo_needs_three_fish_and_three_meat(self):
+        self.assertEqual(
+            alg.cook(("Fish", "Fish", "Fish", "Meat"), mode="uc"),
+            "Seafood Gumbo",
+        )
+        self.assertEqual(
+            alg.cook(("Fish", "Fish", "Meat", "Meat"), mode="uc"),
+            "Surf 'n' Turf",
+        )
+
+    def test_surf_and_turf_needs_two_fish(self):
+        ingredients = ("Meat", "Meat", "Fish Morsel", "Fish")
+        self.assertEqual(alg.cook(ingredients), "Surf 'n' Turf")
+        self.assertNotEqual(
+            alg.cook(ingredients, mode="uc"),
+            "Surf 'n' Turf",
+        )
+
+    def test_figkabab_rejects_ice(self):
+        ingredients = ("Fig", "Meat", "Twigs", "Ice")
+        self.assertEqual(alg.cook(ingredients), "Figkabab")
+        self.assertNotEqual(alg.cook(ingredients, mode="uc"), "Figkabab")
+
+    def test_tall_scotch_eggs_need_three_vegetables(self):
+        two_vegetables = ("Tallbird Egg", "Carrot", "Carrot", "Ice")
+        self.assertEqual(alg.cook(two_vegetables), "Tall Scotch Eggs")
+        self.assertNotEqual(
+            alg.cook(two_vegetables, mode="uc"),
+            "Tall Scotch Eggs",
+        )
+        self.assertEqual(
+            alg.cook(("Tallbird Egg", "Carrot", "Carrot", "Carrot"),
+                     mode="uc"),
+            "Tall Scotch Eggs",
+        )
+
+    def test_unagi_priority_beats_surf_and_turf(self):
+        ingredients = ("Eel", "Kelp Fronds", "Fish", "Meat")
+        self.assertEqual(alg.cook(ingredients), "Surf 'n' Turf")
+        self.assertEqual(alg.cook(ingredients, mode="uc"), "Unagi")
+
+    def test_monster_tartare_needs_four_monster(self):
+        self.assertEqual(
+            alg.cook(("Monster Meat", "Monster Meat", "Carrot", "Carrot"),
+                     warly=True, mode="uc"),
+            "Monster Tartare",
+        )
+        self.assertNotEqual(
+            alg.cook(("Monster Meat", "Meat", "Meat", "Carrot"),
+                     warly=True, mode="uc"),
+            "Monster Tartare",
+        )
+
+    def test_overlay_priorities(self):
+        priorities = {}
+        data = alg._dataset("uc")
+        for name, _, _, priority in data.recipes + data.warly_recipes:
+            priorities.setdefault(name, set()).add(priority)
+        self.assertEqual(priorities["Bacon and Eggs"], {9})
+        self.assertEqual(priorities["Seafood Gumbo"], {31})
+        self.assertEqual(priorities["Unagi"], {52})
+        self.assertEqual(priorities["Monster Tartare"], {52})
+
+    def test_uc_ingredient_values(self):
+        self.assertEqual(alg.ingredient_tags("Beefalo Horn", "uc")["meat"], 1.0)
+        self.assertEqual(alg.ingredient_tags("Rabbit", "uc")["meat"], 0.5)
+        self.assertEqual(
+            alg.ingredient_tags("Fire Nettle Fronds", "uc")["foliage"], 1.0
+        )
+        for trunk in (
+            "Koalefant Trunk",
+            "Winter Koalefant Trunk",
+            "Koalefant Trunk Steak",
+        ):
+            with self.subTest(trunk=trunk):
+                self.assertEqual(alg.ingredient_tags(trunk, "uc")["meat"], 2.0)
+
+    def test_new_uc_ingredients_are_pickable(self):
+        picker = alg.picker_foods("uc")
+        for name in ("Beefalo Horn", "Rabbit", "Fire Nettle Fronds"):
+            with self.subTest(name=name):
+                self.assertIn(name, picker)
+        self.assertNotIn("Beefalo Horn", alg.picker_foods())
+        self.assertNotIn("Rabbit", alg.picker_foods())
+        self.assertNotIn("Fire Nettle Fronds", alg.picker_foods())
 
 
 class UCModeTest(unittest.TestCase):

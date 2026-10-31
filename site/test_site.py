@@ -242,6 +242,8 @@ class SiteApiTest(unittest.TestCase):
         self.assertEqual(server.RU_NAMES["Heat Gland"], "Тепловая железа")
         self.assertEqual(server.RU_NAMES["Meaty Stew"], "Мясная похлёбка")
         self.assertEqual(server.RU_NAMES["Cooked Morsel"], "Приготовленный кусочек мяса")
+        self.assertEqual(server.RU_NAMES["Beefalo Horn"], "Рог бифало")
+        self.assertEqual(server.RU_NAMES["Rabbit"], "Кролик")
 
     def test_russian_input_matches_english(self):
         english = server.calculate(
@@ -427,6 +429,12 @@ class PickerTest(unittest.TestCase):
             "Green Foliage",
         ):
             self.assertIn(name, foods)
+
+    def test_uc_rebalanced_ingredients_are_pickable(self):
+        foods = server.alg.picker_foods("uc")
+        for name in ("Beefalo Horn", "Rabbit", "Fire Nettle Fronds"):
+            with self.subTest(name=name):
+                self.assertIn(name, foods)
 
     def test_uc_dishes_are_not_pot_ingredients(self):
         foods = set(server.alg.picker_foods("uc"))

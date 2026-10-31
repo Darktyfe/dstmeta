@@ -9,14 +9,18 @@ recipes by priority exactly like they do in the game.
 
 Sources
 -------
-* ``init/init_food/init_crockpot.lua`` and
-  ``init/init_food/monsterfoods.lua`` from the Uncompromising Mode repository;
-* the Uncompromising Mode wiki's Crock Pot page (revision 13949), which is the
-  source for the dish stats in ``data/uc/food.txt``.
+* ``init/init_food/init_crockpot.lua``, ``init/init_food/monsterfoods.lua`` and
+  ``init/init_tuning.lua`` from the Uncompromising Mode repository's ``live``
+  branch;
+* the Uncompromising Mode wiki's Crock Pot page (revision 13949) for the
+  UC-only dish stats, and its Balance Changes/Food page (revision 11896) for
+  the rebalanced vanilla stats, both in ``data/uc/food.txt``.
 
 The mod's options are assumed to be in their default (enabled) state:
 ``crockpotmonstmeat``, ``generalcrockblocker``, ``icecrockblocker``,
-``rice``, ``newrecipes`` and ``monstereggs``.
+``rice``, ``newrecipes``, ``monstereggs``, ``farmfoodredux``,
+``sr_foodrebalance``, ``icecream_buff``, ``meatball``, ``bonestew_nerf``,
+``seeds``, ``beebox_nerf``, ``rawcropsnerf`` and ``butterflywings_nerf``.
 """
 
 from __future__ import annotations
@@ -150,9 +154,9 @@ def _kabobs(ingredients, tags):
     return bool(
         tags.get("meat", 0.0)
         and _count(ingredients, {"Twigs"})
-        and tags.get("inedible", 0.0) <= _TWIG_LIMIT
-        and not tags.get("frozen", 0.0)
         and tags.get("monster meat", 0.0) <= 3.5
+        and _fillers_ok(tags)
+        and tags.get("insectoid", 0.0) < _TERMITE
     )
 
 

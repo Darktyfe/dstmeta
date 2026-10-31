@@ -1,0 +1,15 @@
+Bacon and Eggs; > 1.0 *Meat, > 1.0 *Egg; *Vegetable; 9
+Barnacle Nigiri; >= 1.0 *Barnacle, >= 1.0 *Kelp Fronds; *Insectoid; 30
+Bunny Stew; >= 1.0 !Rabbit, == 2.0 *Frozen; *Inedible, *Foliage; 1
+Figgy Frogwich; >= 1.0 *Fig, >= 1.0 *Frog Leg; *Insectoid; 20
+Figkabab; >= 1.0 *Fig, >= 1.0 *Meat, >= 1.0 Twigs, <= 1.0 *Monster; *Frozen, *Foliage, *Insectoid; 30
+Fishsticks; >= 1.0 *Fish, >= 1.0 Twigs, <= 3.5 *Monster; *Insectoid; 10
+Froggle Bunwich; >= 1.0 *Frog Leg, >= 0.5 *Vegetable; *Insectoid; 6
+Meaty Stew; >= 3.5 *Meat; *Inedible; 0
+Pierogi; > 0.0 *Egg, > 0.0 *Meat, >= 1.5 *Vegetable; *Inedible, *Insectoid; 5
+Seafood Gumbo; >= 3.0 *Fish, >= 3.0 *Meat; ; 31
+Surf 'n' Turf; >= 2.5 *Meat, >= 2.0 *Fish; *Frozen; 30
+Tall Scotch Eggs; >= 1.0 Tallbird Egg, >= 3.0 *Vegetable; ; 10
+Unagi; >= 1.0 *Eel, >= 1.0 Lichen; *Insectoid; 52
+Unagi; >= 1.0 *Eel, >= 1.0 *Kelp Fronds; *Insectoid; 52
+Unagi; >= 1.0 *Eel, >= 1.0 Dried Kelp Fronds; *Insectoid; 52
