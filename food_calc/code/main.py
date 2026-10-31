@@ -224,7 +224,7 @@ def main(argv=None):
     for action in actions:
         if action[0] == "keep":
             print(f"  {alg.describe_action(action)} (not eaten)")
-        elif action[0] == "prep":
+        elif action[0] in ("prep", "kill"):
             print(f"  {alg.describe_action(action)}")
         else:
             print(

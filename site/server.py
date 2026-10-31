@@ -182,15 +182,20 @@ def stats_dict(name, over_time=True, mode=alg.DEFAULT_MODE):
 
 def action_dict(action, over_time=True, mode=alg.DEFAULT_MODE):
     kind, source, target = action
+    stats = (
+        {stat: 0.0 for stat in STAT_KEYS}
+        if kind in ("prep", "kill")
+        else stats_dict(target, over_time, mode)
+    )
     result = {
         "kind": kind,
         "description": alg.describe_action(action),
         "food": target,
-        "stats": stats_dict(target, over_time, mode),
+        "stats": stats,
     }
     if kind == "cook":
         result["ingredients"] = list(source)
-    elif kind in ("roast", "dry"):
+    elif kind in ("roast", "dry", "kill"):
         result["source"] = source
     return result
 

@@ -22,6 +22,10 @@ Ingredients can also be roasted on a campfire or dried on a drying rack.
 four items in the pot.  Dried variants are opt-in because a drying rack is
 much slower than a campfire.
 
+Some ingredients are live creatures.  ``conversions.txt`` maps them to the
+food they drop when killed (Rabbit -> Morsel, ocean fish -> Fish Morsel, ...),
+so :func:`find_best_plan` can kill them before eating or cooking.
+
 A few foods (``over_time.txt``) restore or drain part of their stats gradually
 instead of on the first bite; that part is counted by default but can be
 skipped with ``over_time=False``.  The Milkmade Hat is not really a meal - it
@@ -50,6 +54,7 @@ STATS = basic_func.file_to_list("food.txt")
 COOKED = basic_func.file_to_list("cooked_table.txt")
 DRIED = basic_func.file_to_list("dried_table.txt")
 OVER_TIME = basic_func.file_to_list("over_time.txt")
+CONVERSIONS = basic_func.file_to_list("conversions.txt")
 
 MODES = basic_func.MODES
 DEFAULT_MODE = basic_func.DEFAULT_MODE
@@ -71,6 +76,7 @@ class _Data(NamedTuple):
     stats: dict
     cooked: dict
     dried: dict
+    conversions: dict
     over_time: dict
     recipe_dishes: frozenset
     non_pot_foods: frozenset
@@ -88,7 +94,8 @@ def _dataset(mode=DEFAULT_MODE):
     if mode == DEFAULT_MODE:
         recipes, warly = RECIPES, WARLY_RECIPES
         values, stats = VALUES, STATS
-        cooked, dried, over_time = COOKED, DRIED, OVER_TIME
+        cooked, dried = COOKED, DRIED
+        conversions, over_time = CONVERSIONS, OVER_TIME
     else:
         recipes = basic_func.file_to_list("recipes.txt", mode)
         warly = basic_func.file_to_list("warly_recipes.txt", mode)
@@ -96,6 +103,7 @@ def _dataset(mode=DEFAULT_MODE):
         stats = basic_func.file_to_list("food.txt", mode)
         cooked = basic_func.file_to_list("cooked_table.txt", mode)
         dried = basic_func.file_to_list("dried_table.txt", mode)
+        conversions = basic_func.file_to_list("conversions.txt", mode)
         over_time = basic_func.file_to_list("over_time.txt", mode)
 
     recipes = tuple(recipes)
@@ -114,6 +122,7 @@ def _dataset(mode=DEFAULT_MODE):
         stats=stats,
         cooked=cooked,
         dried=dried,
+        conversions=conversions,
         over_time=over_time,
         recipe_dishes=recipe_dishes,
         non_pot_foods=recipe_dishes | {"Dead Wobster", "Delicious Wobster"},
@@ -411,28 +420,40 @@ def _variant_options(name, dried=False, mode=DEFAULT_MODE):
     """Return the raw name plus processed forms that cook differently.
 
     A cooked or dried form with the same pot-relevant tags always cooks into
-    the same dish, so it does not need to be tried in the pot.  The raw form
-    is always first and therefore wins ties.
+    the same dish, so it does not need to be tried in the pot.  Live creatures
+    can also be killed into their food drop (Rabbit -> Morsel, ocean fish ->
+    Fish Morsel, ...), and that drop can itself be cooked or dried.  The raw
+    form is always first and therefore wins ties.
     """
     data = _dataset(mode)
     variants = [name]
     seen = {_pot_signature(name, mode)}
+    queue = [name]
+    visited = {name}
 
-    candidates = []
-    cooked = data.cooked.get(name)
-    if cooked is not None:
-        candidates.append(cooked)
-    if dried:
-        dried_name = data.dried.get(name)
-        if dried_name is not None:
-            candidates.append(dried_name)
+    while queue:
+        item = queue.pop(0)
+        candidates = []
+        cooked = data.cooked.get(item)
+        if cooked is not None:
+            candidates.append(cooked)
+        if dried:
+            dried_name = data.dried.get(item)
+            if dried_name is not None:
+                candidates.append(dried_name)
+        converted = data.conversions.get(item)
+        if converted is not None and converted in data.values:
+            candidates.append(converted)
 
-    for candidate in candidates:
-        signature = _pot_signature(candidate, mode)
-        if signature in seen:
-            continue
-        seen.add(signature)
-        variants.append(candidate)
+        for candidate in candidates:
+            if candidate in visited:
+                continue
+            visited.add(candidate)
+            signature = _pot_signature(candidate, mode)
+            if signature not in seen:
+                seen.add(signature)
+                variants.append(candidate)
+            queue.append(candidate)
     return tuple(variants)
 
 
@@ -469,18 +490,83 @@ def _processed_count(combo, mode=DEFAULT_MODE):
     return sum(1 for name in combo if name in cooked_names or name in dried_names)
 
 
-def _combo_key(combo, mode=DEFAULT_MODE):
-    return _processed_count(combo, mode), combo
+@lru_cache(maxsize=None)
+def _reverse_transformations(mode=DEFAULT_MODE):
+    """Return ``{result: ((source, kind), ...)}`` for prep chains.
+
+    Cooking and drying are prep steps (they do not eat the item), while a
+    conversion is a kill step.  Only conversion targets the pot accepts are
+    included, so a Dead Wobster is not offered as a pot ingredient.
+    """
+    data = _dataset(mode)
+    reverse = {}
+    for raw, cooked in data.cooked.items():
+        reverse.setdefault(cooked, []).append((raw, "prep"))
+    for raw, dried in data.dried.items():
+        reverse.setdefault(dried, []).append((raw, "prep"))
+    for source, target in data.conversions.items():
+        if target in data.values:
+            reverse.setdefault(target, []).append((source, "kill"))
+    return {
+        target: tuple(edges)
+        for target, edges in reverse.items()
+    }
+
+
+def _prep_chain(item, available, mode=DEFAULT_MODE):
+    """Return the shortest steps that turn an available item into ``item``.
+
+    ``available`` is a ``Counter`` of the inventory.  Each step is
+    ``(kind, source, target)`` with ``kind`` equal to ``"prep"`` or ``"kill"``.
+    Returns ``None`` when the inventory cannot produce ``item``.
+    """
+    if available[item] > 0:
+        return ()
+    reverse = _reverse_transformations(mode)
+    queue = [(item, ())]
+    visited = {item}
+    while queue:
+        current, path = queue.pop(0)
+        for source, kind in reverse.get(current, ()):
+            step = (kind, source, current)
+            if available[source] > 0:
+                return (step,) + path
+            if source not in visited:
+                visited.add(source)
+                queue.append((source, (step,) + path))
+    return None
+
+
+def _prep_cost(used, combo, mode=DEFAULT_MODE):
+    """Count the prep steps needed to turn ``combo`` into ``used``."""
+    available = Counter(combo)
+    cost = 0
+    for item in used:
+        if available[item] > 0:
+            available[item] -= 1
+            continue
+        chain = _prep_chain(item, available, mode)
+        if chain is None:
+            continue
+        available[chain[0][1]] -= 1
+        cost += len(chain)
+    return cost
+
+
+def _variant_key(used, combo, mode=DEFAULT_MODE):
+    """Prefer variants that need fewer prep steps, then fewer processed items."""
+    return _prep_cost(used, combo, mode), _processed_count(used, mode), used
 
 
 def cookable_dishes(food_list, warly=False, dried=False, milkmade=True,
                     mode=DEFAULT_MODE):
     """Return ``{dish: [combination, ...]}`` for the given inventory.
 
-    Combinations include raw, campfire-cooked and (when ``dried`` is true)
-    drying-rack ingredients.  With ``milkmade=False`` the Milkmade Hat is not
-    offered.  Each dish's combinations are ordered least processed first, so
-    the rawest one is preferred when several produce the same dish.
+    Combinations include raw, campfire-cooked, killed (Rabbit -> Morsel) and
+    (when ``dried`` is true) drying-rack ingredients.  With ``milkmade=False``
+    the Milkmade Hat is not offered.  Each dish's combinations are ordered by
+    the number of prep steps, so the rawest one is preferred when several
+    produce the same dish.
     """
     mode = get_mode(mode)
     dishes = {}
@@ -489,11 +575,17 @@ def cookable_dishes(food_list, warly=False, dried=False, milkmade=True,
             dish = cook(used, warly, milkmade, mode)
             if dish is None:
                 continue
-            bucket = dishes.setdefault(dish, [])
-            if used not in bucket:
-                bucket.append(used)
-    for bucket in dishes.values():
-        bucket.sort(key=lambda combo: _combo_key(combo, mode))
+            dishes.setdefault(dish, []).append((used, combo))
+    for dish, entries in dishes.items():
+        entries.sort(key=lambda entry: _variant_key(entry[0], entry[1], mode))
+        unique = []
+        seen = set()
+        for used, _ in entries:
+            if used in seen:
+                continue
+            seen.add(used)
+            unique.append(used)
+        dishes[dish] = unique
     return dishes
 
 
@@ -680,7 +772,9 @@ def _pot_options(combo, warly, dried=False, over_time=True, milkmade=True,
             continue
         stats = get_food_stats(dish, over_time, mode) or (0.0, 0.0, 0.0)
         current = by_dish.get(dish)
-        if current is None or _combo_key(used, mode) < _combo_key(current[0], mode):
+        if current is None or _variant_key(used, combo, mode) < _variant_key(
+            current[0], combo, mode
+        ):
             by_dish[dish] = (used, tuple(float(value) for value in stats))
 
     # If eating the four items individually is at least as good in every stat,
@@ -845,6 +939,32 @@ def _individual_options(name, dried=False, over_time=True, mode=DEFAULT_MODE):
                     (tuple(float(value) for value in dried_stats),
                      ("dry", name, dried_name))
                 )
+
+    # A live creature that cannot be eaten or cooked directly can still be
+    # killed for its drop, and that drop can be eaten, roasted or dried.  The
+    # condition keeps the native engine's four individual kinds unambiguous:
+    # an item with raw/cooked/dried stats uses those instead.
+    if stats is None and cooked is None and data.dried.get(name) is None:
+        target = data.conversions.get(name)
+        if target is not None:
+            seen_vectors = {vector for vector, _ in options}
+            candidates = [target]
+            target_cooked = data.cooked.get(target)
+            if target_cooked is not None:
+                candidates.append(target_cooked)
+            if dried:
+                target_dried = data.dried.get(target)
+                if target_dried is not None:
+                    candidates.append(target_dried)
+            for final_target in candidates:
+                final_stats = get_food_stats(final_target, over_time, mode)
+                if final_stats is None:
+                    continue
+                vector = tuple(float(value) for value in final_stats)
+                if vector in seen_vectors:
+                    continue
+                seen_vectors.add(vector)
+                options.append((vector, ("kill", name, final_target)))
     return tuple(options)
 
 
@@ -1241,6 +1361,57 @@ def _type_combos(counts, size, start=0, chosen=()):
             counts[t] += 1
 
 
+def _native_individual_kind(action, name, dried, mode):
+    """Map an individual option to one of the native engine's four kinds."""
+    kind = action[0]
+    if kind != "kill":
+        return cpp_engine.ACTION_KINDS[kind]
+
+    data = _dataset(mode)
+    target = action[2]
+    raw_target = data.conversions.get(name)
+    if target == raw_target:
+        return cpp_engine.ACTION_KINDS["eat"]
+    if target == data.cooked.get(raw_target):
+        return cpp_engine.ACTION_KINDS["roast"]
+    if dried and target == data.dried.get(raw_target):
+        return cpp_engine.ACTION_KINDS["dry"]
+    raise ValueError(f"Cannot map {action!r} to a native individual kind")
+
+
+def _native_individual_action(name, kind, dried, over_time, mode):
+    """Rebuild the action for a native individual count."""
+    data = _dataset(mode)
+    if kind == "eat":
+        if get_food_stats(name, over_time, mode) is not None:
+            return ("eat", name, name)
+        target = data.conversions.get(name)
+        if target is not None:
+            return ("kill", name, target)
+        return ("eat", name, name)
+    if kind == "roast":
+        cooked = data.cooked.get(name)
+        if cooked is not None:
+            return ("roast", name, cooked)
+        target = data.conversions.get(name)
+        if target is not None:
+            target_cooked = data.cooked.get(target)
+            if target_cooked is not None:
+                return ("kill", name, target_cooked)
+        return ("roast", name, name)
+    if kind == "dry":
+        dried_name = data.dried.get(name)
+        if dried_name is not None:
+            return ("dry", name, dried_name)
+        target = data.conversions.get(name)
+        if target is not None:
+            target_dried = data.dried.get(target)
+            if target_dried is not None:
+                return ("kill", name, target_dried)
+        return ("dry", name, name)
+    raise ValueError(f"Unknown native individual kind: {kind!r}")
+
+
 def _native_task(inventory, warly, dried=False, over_time=True, milkmade=True,
                  mode=DEFAULT_MODE):
     """Build the flat arrays for the native engine, or None outside its limits.
@@ -1264,7 +1435,7 @@ def _native_task(inventory, warly, dried=False, over_time=True, milkmade=True,
     ind_stats = []
     for name in types:
         for vector, action in _individual_options(name, dried, over_time, mode):
-            ind_kind.append(cpp_engine.ACTION_KINDS[action[0]])
+            ind_kind.append(_native_individual_kind(action, name, dried, mode))
             ind_stats.extend(float(value) for value in vector)
         ind_off.append(len(ind_kind))
 
@@ -1339,11 +1510,17 @@ def _native_plan(inventory, stat_index, allowed, warly, dried=False,
         for _ in range(keep):
             actions.append(("keep", name, name))
         for _ in range(eat):
-            actions.append(("eat", name, name))
+            actions.append(
+                _native_individual_action(name, "eat", dried, over_time, mode)
+            )
         for _ in range(roast):
-            actions.append(("roast", name, data.cooked.get(name) or name))
+            actions.append(
+                _native_individual_action(name, "roast", dried, over_time, mode)
+            )
         for _ in range(dry):
-            actions.append(("dry", name, data.dried.get(name) or name))
+            actions.append(
+                _native_individual_action(name, "dry", dried, over_time, mode)
+            )
     return total, actions
 
 
@@ -1353,8 +1530,9 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
     """Return ``(total_score, actions)`` for the best use of the inventory.
 
     Every item is either eaten raw, roasted on a campfire, dried on a drying
-    rack (only when ``dried`` is true), kept because it would be harmful, or
-    grouped with three others into a crockpot dish.  ``losses`` limits how far
+    rack (only when ``dried`` is true), killed for its drop (Rabbit ->
+    Morsel, ...), kept because it would be harmful, or grouped with three
+    others into a crockpot dish.  ``losses`` limits how far
     the final totals may drop below zero for each stat; the default
     ``0, 0, 0`` forbids any net loss.  ``over_time=False`` counts only the
     stats a food gives on the first bite, ``milkmade=False`` keeps the
@@ -1412,16 +1590,18 @@ def find_best_plan(food_list, stat="Hunger", warly=False, losses=None,
 
 
 def _expand_prep(actions, inventory, mode=DEFAULT_MODE):
-    """Add the campfire steps needed to use cooked forms in the pot.
+    """Add the kill, campfire and drying steps a plan needs.
 
-    The optimizer treats a campfire roast as free, so a pot ingredient may be
-    listed in its cooked form even though the inventory only holds the raw
-    item.  Those roasts are real steps the player has to take; insert them
-    before the cook action so the returned plan can be followed literally.
+    The optimizer treats roasting, drying and killing as free, so a pot
+    ingredient may be listed in its cooked, dried or converted form even
+    though the inventory only holds the raw creature.  Those steps are real
+    actions the player has to take; insert them before the cook action so the
+    returned plan can be followed literally.
 
     Individual ``roast`` and ``dry`` actions are left alone: they mean "roast
     (or dry) this item and eat it", so they keep contributing to the plan's
-    totals.
+    totals.  An individual ``kill`` action means "kill this creature and eat
+    its drop", so it is split into the kill step and the eating step.
     """
     data = _dataset(mode)
     available = Counter(inventory)
@@ -1429,6 +1609,23 @@ def _expand_prep(actions, inventory, mode=DEFAULT_MODE):
 
     for action in actions:
         kind, source, target = action
+        if kind == "kill":
+            available[source] -= 1
+            raw_target = data.conversions.get(source)
+            if raw_target is None:
+                # The optimizer only emits kill actions for known conversions.
+                expanded.append(("eat", source, target))
+                continue
+            expanded.append(("kill", source, raw_target))
+            if target == raw_target:
+                expanded.append(("eat", raw_target, raw_target))
+            elif target == data.cooked.get(raw_target):
+                expanded.append(("roast", raw_target, target))
+            elif target == data.dried.get(raw_target):
+                expanded.append(("dry", raw_target, target))
+            else:
+                expanded.append(("eat", raw_target, target))
+            continue
         if kind != "cook":
             if kind in ("eat", "roast", "dry", "keep"):
                 available[source] -= 1
@@ -1442,31 +1639,15 @@ def _expand_prep(actions, inventory, mode=DEFAULT_MODE):
                 used.append(item)
                 continue
 
-            raw = next(
-                (
-                    candidate
-                    for candidate, cooked in data.cooked.items()
-                    if cooked == item and available[candidate] > 0
-                ),
-                None,
-            )
-            if raw is None:
-                raw = next(
-                    (
-                        candidate
-                        for candidate, dried_item in data.dried.items()
-                        if dried_item == item and available[candidate] > 0
-                    ),
-                    None,
-                )
-            if raw is None:
+            chain = _prep_chain(item, available, mode)
+            if chain is None:
                 # The optimizer produced this item from the inventory, so this
                 # should be unreachable; keep the plan usable if data changes.
                 used.append(item)
                 continue
 
-            available[raw] -= 1
-            expanded.append(("prep", raw, item))
+            available[chain[0][1]] -= 1
+            expanded.extend(chain)
             used.append(item)
 
         expanded.append(("cook", tuple(used), target))
@@ -1478,9 +1659,10 @@ def plan_totals(actions, over_time=True, mode=DEFAULT_MODE):
     """Return ``{stat: total}`` for the food produced by a plan."""
     totals = {stat: 0.0 for stat in STAT_NAMES}
     for action in actions:
-        # Kept food is not eaten, and prepping an ingredient only readies it
-        # for the pot; neither contributes to the plan's totals.
-        if action[0] in ("keep", "prep"):
+        # Kept food is not eaten, and prepping (including killing) an
+        # ingredient only readies it for the pot or a later eating step;
+        # none of these contribute to the plan's totals.
+        if action[0] in ("keep", "prep", "kill"):
             continue
         stats = get_food_stats(action[2], over_time, mode) or (0.0, 0.0, 0.0)
         for stat, value in zip(STAT_NAMES, stats):
@@ -1497,6 +1679,10 @@ def describe_action(action):
         return f"roast {source} -> {target}"
     if kind == "dry":
         return f"dry {source} -> {target}"
+    if kind == "prep":
+        return f"prepare {source} -> {target}"
+    if kind == "kill":
+        return f"kill {source} -> {target}"
     if kind == "eat":
         return f"eat {source}"
     return f"keep {source}"
@@ -1530,6 +1716,16 @@ def data_warnings(mode=DEFAULT_MODE):
         if dried not in data.stats:
             warnings.append(
                 f"dried_table.txt: {raw!r} -> {dried!r} has no stats in food.txt"
+            )
+
+    for source, target in data.conversions.items():
+        # Rabbit is only a picker ingredient in UC mode; the conversion is
+        # still valid in DST but cannot be selected there.
+        if source not in data.values:
+            continue
+        if target not in data.stats:
+            warnings.append(
+                f"conversions.txt: {source!r} -> {target!r} has no stats in food.txt"
             )
 
     for name, gradual in data.over_time.items():

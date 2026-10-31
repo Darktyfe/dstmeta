@@ -115,8 +115,10 @@ window.DSTMETA_I18N = {
     verbEat: "Eat",
     verbKeep: "Keep",
     verbPrep: "Prepare",
+    verbKill: "Kill",
     notEaten: "not eaten",
     forThePot: "for the pot",
+    prepared: "prepared",
 
     planExhaustive: "exhaustive",
     planBeam: "beam search",
@@ -259,8 +261,10 @@ window.DSTMETA_I18N = {
     verbEat: "Съесть",
     verbKeep: "Оставить",
     verbPrep: "Подготовить",
+    verbKill: "Убить",
     notEaten: "не съедено",
     forThePot: "для казана",
+    prepared: "подготовлено",
 
     planExhaustive: "полный перебор",
     planBeam: "лучевой поиск",

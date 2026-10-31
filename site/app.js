@@ -68,7 +68,7 @@
   const STAT_KEYS = ["Hunger", "Sanity", "Health"];
   const STAT_CLASS = { Hunger: "hunger", Sanity: "sanity", Health: "health" };
   const STEP_ICON = {
-    cook: "🍲", roast: "🔥", dry: "🥓", eat: "🍴", keep: "✋", prep: "🔪",
+    cook: "🍲", roast: "🔥", dry: "🥓", eat: "🍴", keep: "✋", prep: "🔪", kill: "🗡️",
   };
   const STEP_VERB_KEY = {
     cook: "verbCook",
@@ -77,6 +77,7 @@
     eat: "verbEat",
     keep: "verbKeep",
     prep: "verbPrep",
+    kill: "verbKill",
   };
 
   const SAMPLE = ["Meat", "Meat", "Meat", "Ice", "Meat"];
@@ -666,7 +667,7 @@
       title.append(document.createTextNode(action.ingredients.map(foodName).join(", ")));
       title.append(el("span", "arrow", "→"));
       title.append(document.createTextNode(foodName(action.food)));
-    } else if (action.kind === "roast" || action.kind === "dry") {
+    } else if (action.kind === "roast" || action.kind === "dry" || action.kind === "kill") {
       title.append(document.createTextNode(foodName(action.source)));
       title.append(el("span", "arrow", "→"));
       title.append(document.createTextNode(foodName(action.food)));
@@ -689,6 +690,8 @@
       stats.append(el("span", "mini-stat", t("notEaten")));
     } else if (action.kind === "prep") {
       stats.append(el("span", "mini-stat", t("forThePot")));
+    } else if (action.kind === "kill") {
+      stats.append(el("span", "mini-stat", t("prepared")));
     } else {
       STAT_KEYS.forEach((stat) => {
         stats.append(miniStat(stat, action.stats[stat] ?? 0));

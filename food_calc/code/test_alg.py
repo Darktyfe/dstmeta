@@ -267,6 +267,71 @@ class CookingTest(unittest.TestCase):
         self.assertEqual(alg.get_food_stats("Grim Galette"), (25.0, 5.0, 1.0))
 
 
+class ConversionTest(unittest.TestCase):
+    def test_rabbit_can_be_killed_and_eaten(self):
+        total, actions = alg.find_best_plan(["Rabbit"], "Health", mode="uc")
+        self.assertEqual(total, 1.0)
+        self.assertEqual(actions[0], ("kill", "Rabbit", "Morsel"))
+        self.assertEqual(actions[1], ("roast", "Morsel", "Cooked Morsel"))
+        self.assertEqual(
+            alg.plan_totals(actions, mode="uc")["Health"], 1.0
+        )
+
+    def test_rabbit_can_be_dried(self):
+        total, actions = alg.find_best_plan(
+            ["Rabbit"], "Sanity", dried=True, mode="uc"
+        )
+        self.assertEqual(total, 10.0)
+        self.assertEqual(actions[0], ("kill", "Rabbit", "Morsel"))
+        self.assertEqual(actions[1], ("dry", "Morsel", "Small Jerky"))
+        self.assertEqual(
+            alg.plan_totals(actions, mode="uc")["Sanity"], 10.0
+        )
+
+    def test_moleworm_can_be_killed(self):
+        total, actions = alg.find_best_plan(["Moleworm"], "Health")
+        self.assertEqual(total, 1.0)
+        self.assertIn(("kill", "Moleworm", "Morsel"), actions)
+        self.assertIn(("roast", "Morsel", "Cooked Morsel"), actions)
+
+    def test_rabbit_is_only_selectable_in_uc(self):
+        self.assertIsNone(alg.resolve_food_name("Rabbit"))
+        self.assertEqual(alg.resolve_food_name("Rabbit", "uc"), "Rabbit")
+
+    def test_rabbit_can_be_used_as_morsel_in_the_pot(self):
+        dishes = alg.cookable_dishes(
+            ["Rabbit", "Ice", "Ice", "Carrot"], mode="uc"
+        )
+        self.assertIn("Bunny Stew", dishes)
+        self.assertIn("Snowcone", dishes)
+        self.assertTrue(any("Rabbit" in combo for combo in dishes["Bunny Stew"]))
+        self.assertTrue(any("Morsel" in combo for combo in dishes["Snowcone"]))
+
+    def test_fish_conversion_changes_the_pot(self):
+        dishes = alg.cookable_dishes(
+            ["Ice Bream", "Meat", "Meat", "Fish"], mode="uc"
+        )
+        self.assertIn("Surf 'n' Turf", dishes)
+        self.assertTrue(
+            any("Raw Fish" in combo for combo in dishes["Surf 'n' Turf"])
+        )
+
+    def test_kill_action_description(self):
+        self.assertEqual(
+            alg.describe_action(("kill", "Rabbit", "Morsel")),
+            "kill Rabbit -> Morsel",
+        )
+
+    def test_conversion_data_is_consistent(self):
+        for mode in alg.MODES:
+            warnings = [
+                warning
+                for warning in alg.data_warnings(mode)
+                if warning.startswith("conversions.txt")
+            ]
+            self.assertEqual(warnings, [])
+
+
 class DryingTest(unittest.TestCase):
     def test_dried_variant_lookup(self):
         self.assertEqual(alg.get_dried_variant("Meat"), "Jerky")
@@ -643,6 +708,31 @@ class NativeParityTest(unittest.TestCase):
                 self.assertEqual(cpp_total, py_total)
                 self.assertEqual(alg.plan_totals(cpp_actions), alg.plan_totals(py_actions))
                 self.assertEqual(self._cook_groups(cpp_actions), self._cook_groups(py_actions))
+
+    def test_conversion_plans_match(self):
+        for ingredients, stat, kwargs in (
+            (["Rabbit"], "Sanity", {"mode": "uc", "dried": True}),
+            (["Moleworm"], "Health", {}),
+            (["Ice Bream", "Meat", "Meat", "Fish"], "Hunger", {"mode": "uc"}),
+        ):
+            with self.subTest(inventory=ingredients):
+                (py_total, py_actions), (cpp_total, cpp_actions) = self._run_plan(
+                    ingredients, stat=stat, **kwargs
+                )
+                mode = kwargs.get("mode", "dst")
+                self.assertEqual(cpp_total, py_total)
+                self.assertEqual(
+                    alg.plan_totals(cpp_actions, mode=mode),
+                    alg.plan_totals(py_actions, mode=mode),
+                )
+                self.assertEqual(
+                    self._cook_groups(cpp_actions),
+                    self._cook_groups(py_actions),
+                )
+                self.assertEqual(
+                    sorted(action[0] for action in cpp_actions),
+                    sorted(action[0] for action in py_actions),
+                )
 
     def test_dried_plans_match(self):
         for ingredients, stat in (
