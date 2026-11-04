@@ -1,0 +1,20 @@
+# Uncompromising Mode food type changes and new foods.
+
+Ice Cream: general
+Taffy: general
+Frozen Banana Daiquiri: veggie
+Mushy Cake: veggie
+California King: meat
+Seafood Paella: meat
+Snot Roast: meat
+Hard Shell Tacos: meat
+Steamed Hams: meat
+Stuffed Peeper Poppers: meat
+Deviled Eggs: meat
+Monster Morsel: meat, monster, raw
+Cooked Monster Morsel: meat, monster
+Small Monster Jerky: meat, monster
+Monster Egg: meat, monster, raw
+Cooked Monster Egg: meat, monster
+Scorpion Carapace: meat
+Grilled Scorpion Carapace: meat

@@ -12,6 +12,7 @@ recipes.txt      ``Dish; conditions; excludes; priority``
 cooked_table.txt ``Raw: Cooked``
 dried_table.txt  ``Raw: Dried``
 conversions.txt  ``Live creature: food drop``
+food_types.txt   ``Food: type, type, ...`` (meat, goodies, monster, raw)
 
 Conditions are ``<op> <number> <tag>`` separated by ``,`` (``>= 1.0 *Meat``).
 A ``!`` before an ingredient name matches the raw item only (``!Drumstick``),
@@ -23,8 +24,9 @@ Modes
 ``data/`` holds the base (Don't Starve Together) numbers.  ``data/uc/`` holds
 an *overlay* for Uncompromising Mode: every file there has the same format and
 is merged into the base when ``mode="uc"``.  ``food.txt``, ``value.txt``,
-``cooked_table.txt``, ``dried_table.txt``, ``conversions.txt`` and
-``over_time.txt`` replace whole records by name; ``recipes.txt`` and
+``cooked_table.txt``, ``dried_table.txt``, ``conversions.txt``,
+``over_time.txt`` and ``food_types.txt`` replace whole records by name;
+``recipes.txt`` and
 ``warly_recipes.txt`` replace every rule of a dish that the overlay mentions.
 """
 
@@ -104,6 +106,13 @@ def parse_cooked_line(line):
     return raw.strip(), cooked.strip()
 
 
+def parse_types_line(line):
+    """Parse ``Food: type, type`` into ``(name, (types, ...))``."""
+    name, rest = line.split(": ", 1)
+    types = tuple(part.strip() for part in rest.split(",") if part.strip())
+    return name.strip(), types
+
+
 def _parse_file(file_name, mode="dst"):
     """Parse one data file (base or overlay) into ``(parser, container, records)``."""
     parsers = {
@@ -115,6 +124,7 @@ def _parse_file(file_name, mode="dst"):
         "cooked_table.txt": (parse_cooked_line, dict),
         "dried_table.txt": (parse_cooked_line, dict),
         "conversions.txt": (parse_cooked_line, dict),
+        "food_types.txt": (parse_types_line, dict),
     }
     try:
         parser, container = parsers[file_name]
@@ -142,6 +152,7 @@ def file_to_list(file_name, mode="dst"):
     * ``cooked_table.txt`` -> ``{raw: cooked}``
     * ``dried_table.txt``  -> ``{raw: dried}``
     * ``conversions.txt``  -> ``{live creature: food drop}``
+    * ``food_types.txt``   -> ``{food: (type, ...)}``
 
     With a non-default ``mode`` the matching overlay file from ``data/<mode>/``
     is merged in.  Dictionary files replace records by key; recipe files drop

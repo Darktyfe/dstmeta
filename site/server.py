@@ -25,6 +25,7 @@ CODE_DIR = ROOT.parent / "food_calc" / "code"
 sys.path.insert(0, str(CODE_DIR))
 
 import alg  # noqa: E402  (path is set up above)
+import characters  # noqa: E402
 import cpp_engine  # noqa: E402
 
 MAX_INGREDIENTS = 100
@@ -46,6 +47,8 @@ MESSAGES = {
         ),
         "errStat": "stat must be one of {stats}",
         "errBadMode": "mode must be \"dst\" or \"uc\"",
+        "errBadCharacter": "unknown character {name!r}",
+        "errBadRepeats": "warlyRepeats must be -1 or an integer from 0 to 5",
         "errUnknownOne": (
             "{name!r} is not a food and should be removed from the ingredient "
             "list."
@@ -73,6 +76,10 @@ MESSAGES = {
         ),
         "errStat": "Характеристика должна быть одной из: {stats}.",
         "errBadMode": "Режим должен быть «dst» или «uc».",
+        "errBadCharacter": "Неизвестный персонаж: «{name}».",
+        "errBadRepeats": (
+            "warlyRepeats должен быть -1 или целым числом от 0 до 5."
+        ),
         "errUnknownOne": (
             "«{name}» — не еда. Уберите его из списка ингредиентов."
         ),
@@ -173,19 +180,24 @@ def resolve_names(names, mode=alg.DEFAULT_MODE):
     return resolved, unknown
 
 
-def stats_dict(name, over_time=True, mode=alg.DEFAULT_MODE):
-    stats = alg.get_food_stats(name, over_time, mode)
+def stats_dict(name, over_time=True, mode=alg.DEFAULT_MODE, character=None,
+               multiplier=1.0):
+    stats = alg.get_food_stats(name, over_time, mode, character)
     if stats is None:
         return {stat: 0.0 for stat in STAT_KEYS}
-    return {stat: float(value) for stat, value in zip(STAT_KEYS, stats)}
+    return {
+        stat: float(value) * multiplier
+        for stat, value in zip(STAT_KEYS, stats)
+    }
 
 
-def action_dict(action, over_time=True, mode=alg.DEFAULT_MODE):
+def action_dict(action, over_time=True, mode=alg.DEFAULT_MODE, character=None,
+                multiplier=1.0):
     kind, source, target = action
     stats = (
         {stat: 0.0 for stat in STAT_KEYS}
-        if kind in ("prep", "kill")
-        else stats_dict(target, over_time, mode)
+        if kind in ("keep", "prep", "kill")
+        else stats_dict(target, over_time, mode, character, multiplier)
     )
     result = {
         "kind": kind,
@@ -200,13 +212,35 @@ def action_dict(action, over_time=True, mode=alg.DEFAULT_MODE):
     return result
 
 
-def dish_dict(dish, combo, score, over_time=True, mode=alg.DEFAULT_MODE):
+def dish_dict(dish, combo, score, over_time=True, mode=alg.DEFAULT_MODE,
+              character=None, multiplier=1.0):
     return {
         "name": dish,
-        "stats": stats_dict(dish, over_time, mode),
+        "stats": stats_dict(dish, over_time, mode, character, multiplier),
         "score": float(score),
         "combination": list(combo),
     }
+
+
+def plan_actions(actions, over_time=True, mode=alg.DEFAULT_MODE,
+                 character=None, warly_repeats=None):
+    """Convert plan actions, applying Warly's per-serving multiplier."""
+    result = []
+    servings = {}
+    for action in actions:
+        multiplier = 1.0
+        if character == "warly" and action[0] == "cook":
+            if warly_repeats is not None and warly_repeats >= 0:
+                dish = action[2]
+                serving = servings.get(dish, 0) + 1
+                servings[dish] = serving
+                multiplier = characters.warly_multiplier(serving, mode)
+            else:
+                multiplier = characters.warly_first_multiplier(mode)
+        result.append(
+            action_dict(action, over_time, mode, character, multiplier)
+        )
+    return result
 
 
 def calculate(payload):
@@ -223,11 +257,32 @@ def calculate(payload):
     if stat not in STAT_KEYS:
         raise ValueError(message(lang, "errStat", stats=", ".join(STAT_KEYS)))
     warly = bool(payload.get("warly", False))
+
+    raw_character = payload.get("character")
+    if raw_character in (None, "", "none", "off"):
+        character = None
+    else:
+        character = characters.normalize(raw_character)
+        if character is None:
+            raise ValueError(
+                message(lang, "errBadCharacter", name=raw_character)
+            )
+
+    warly_repeats = None
+    if character == "warly":
+        raw_repeats = payload.get("warlyRepeats", -1)
+        if isinstance(raw_repeats, bool) or not isinstance(raw_repeats, int):
+            raise ValueError(message(lang, "errBadRepeats"))
+        if not -1 <= raw_repeats <= 5:
+            raise ValueError(message(lang, "errBadRepeats"))
+        warly_repeats = raw_repeats
+
     # The site checkboxes are "Ignore Dried variants", "Ignore Milkmade Hat"
     # and "Ignore over time stats"; all three default to on.
     dried = not bool(payload.get("ignoreDried", True))
     milkmade = not bool(payload.get("ignoreMilkmade", True))
-    over_time = not bool(payload.get("ignoreOverTime", True))
+    # Uncompromising Mode always counts gradual stats.
+    over_time = mode == "uc" or not bool(payload.get("ignoreOverTime", True))
     losses = alg.normalize_losses(payload.get("losses"))
 
     ingredients, unknown = resolve_names(names, mode)
@@ -245,21 +300,34 @@ def calculate(payload):
     total, actions = alg.find_best_plan(
         ingredients, stat, warly, losses=losses, dried=dried,
         over_time=over_time, milkmade=milkmade, mode=mode,
+        character=character, warly_repeats=warly_repeats,
     )
     totals = {
         key: float(value)
-        for key, value in alg.plan_totals(actions, over_time, mode).items()
+        for key, value in alg.plan_totals(
+            actions, over_time, mode, character, warly_repeats
+        ).items()
     }
+    total = totals[stat]
 
     dishes = []
     if len(ingredients) >= alg.SLOTS:
         cooked = alg.cookable_dishes(
-            ingredients, warly, dried, milkmade, mode=mode
+            ingredients, warly, dried, milkmade, mode=mode, character=character
         )
         for dish, combinations in cooked.items():
-            score = alg.get_food_stat(dish, stat, over_time, mode)
+            score = alg.get_food_stat(
+                dish, stat, over_time, mode, character
+            )
+            multiplier = 1.0
+            if character == "warly":
+                multiplier = characters.warly_first_multiplier(mode)
+                score *= multiplier
             dishes.append(
-                dish_dict(dish, combinations[0], score, over_time, mode)
+                dish_dict(
+                    dish, combinations[0], score, over_time, mode,
+                    character, multiplier,
+                )
             )
         dishes.sort(key=lambda item: (-item["score"], item["name"]))
     total_dishes = len(dishes)
@@ -281,6 +349,8 @@ def calculate(payload):
         "lang": lang,
         "mode": mode,
         "warly": warly,
+        "character": character,
+        "warlyRepeats": warly_repeats,
         "dried": dried,
         "milkmade": milkmade,
         "overTime": over_time,
@@ -289,7 +359,9 @@ def calculate(payload):
         "exact": exact,
         "total": float(total),
         "totals": totals,
-        "plan": [action_dict(action, over_time, mode) for action in actions],
+        "plan": plan_actions(
+            actions, over_time, mode, character, warly_repeats
+        ),
         "bestDish": best_dish,
         "dishes": dishes,
         "totalDishes": total_dishes,

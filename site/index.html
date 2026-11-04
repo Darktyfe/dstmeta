@@ -25,9 +25,129 @@
           <span data-i18n="uncompromising">Uncompromising Mode</span>
         </button>
       </div>
-      <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria-label="language">
-        <button type="button" data-lang="en">EN</button>
-        <button type="button" data-lang="ru">RU</button>
+      <div class="header-actions">
+        <div class="settings">
+          <button type="button" id="settings-toggle" class="settings-toggle"
+            aria-expanded="false" aria-controls="settings-panel" aria-haspopup="dialog"
+            aria-label="Settings" data-i18n-aria-label="settings"
+            data-i18n-title="settings" title="Settings">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+              focusable="false">
+              <circle cx="12" cy="12" r="3.2"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path>
+            </svg>
+          </button>
+
+          <div id="settings-panel" class="settings-panel" role="dialog"
+            aria-label="Settings" data-i18n-aria-label="settings" tabindex="-1" hidden>
+            <div class="settings-head">
+              <span class="step-badge">2</span>
+              <h2 data-i18n="configTitle">Config</h2>
+              <label id="warly-repeats-wrap" class="warly-repeats" hidden>
+                <span class="repeat-icon" aria-hidden="true">↻</span>
+                <select id="warly-repeats" data-i18n-aria-label="warlyRepeatsLabel"
+                  data-i18n-title="warlyRepeatsLabel" title="Dish repeats"
+                  aria-label="Dish repeats">
+                  <option value="-1" data-i18n="repeatIgnore">Ignore</option>
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5+</option>
+                </select>
+              </label>
+              <div class="character-picker">
+                <button type="button" id="character-toggle" class="character-toggle"
+                  aria-haspopup="listbox" aria-expanded="false" aria-controls="character-menu"
+                  aria-label="Character" data-i18n-aria-label="character">
+                  <img id="character-portrait" class="character-portrait"
+                    src="portraits/wilson.png" alt="" width="28" height="28">
+                  <span id="character-name" class="character-name">Wilson</span>
+                  <span class="character-caret" aria-hidden="true"></span>
+                </button>
+              </div>
+              <button type="button" id="settings-close" class="settings-close"
+                aria-label="Close settings" data-i18n-aria-label="closeSettings"
+                data-i18n-title="closeSettings" title="Close settings">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+
+            <fieldset class="field">
+              <legend data-i18n="maximize">Maximize</legend>
+              <div class="segmented" role="group" data-i18n-aria-label="statToMaximize" aria-label="Stat to maximize">
+                <button type="button" data-stat="Hunger" class="active" data-i18n="statHunger">Hunger</button>
+                <button type="button" data-stat="Sanity" data-i18n="statSanity">Sanity</button>
+                <button type="button" data-stat="Health" data-i18n="statHealth">Health</button>
+              </div>
+            </fieldset>
+
+            <label class="switch-row">
+              <span>
+                <span class="switch-title" data-i18n="warlyTitle">Warly recipes</span>
+                <span class="switch-sub" data-i18n="warlySub">Portable Crock Pot exclusives</span>
+              </span>
+              <input type="checkbox" id="warly" name="warly" form="planner">
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+
+            <label class="switch-row">
+              <span>
+                <span class="switch-title" data-i18n="ignoreDriedTitle">Ignore Dried variants</span>
+                <span class="switch-sub" data-i18n="ignoreDriedSub">Default: on &middot; skip Jerky and dried kelp</span>
+              </span>
+              <input type="checkbox" id="ignore-dried" name="ignore-dried" form="planner" checked>
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+
+            <label class="switch-row">
+              <span>
+                <span class="switch-title" data-i18n="ignoreMilkmadeTitle">Ignore Milkmade Hat</span>
+                <span class="switch-sub" data-i18n="ignoreMilkmadeSub">Default: on &middot; it is worn, not eaten</span>
+              </span>
+              <input type="checkbox" id="ignore-milkmade" name="ignore-milkmade" form="planner" checked>
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+
+            <label id="ignore-over-time-row" class="switch-row">
+              <span>
+                <span class="switch-title" data-i18n="ignoreOverTimeTitle">Ignore over time stats</span>
+                <span class="switch-sub" data-i18n="ignoreOverTimeSub">Default: on &middot; only instant stat gains</span>
+              </span>
+              <input type="checkbox" id="ignore-over-time" name="ignore-over-time" form="planner" checked>
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+
+            <fieldset class="field">
+              <legend data-i18n="lossesTitle">Permissible losses</legend>
+              <p class="field-help">
+                <span data-i18n="lossesHelpA">How much of each stat the whole plan may lose.</span>
+                <strong>0</strong><span data-i18n="lossesHelpB"> means never finish below zero.</span>
+              </p>
+              <div class="loss-grid">
+                <label class="loss loss-hunger">
+                  <span data-i18n="statHunger">Hunger</span>
+                  <input type="number" id="loss-hunger" name="loss-hunger" form="planner" data-i18n-aria-label="allowedHungerLoss" aria-label="Allowed hunger loss" min="0" step="0.5" value="0">
+                </label>
+                <label class="loss loss-sanity">
+                  <span data-i18n="statSanity">Sanity</span>
+                  <input type="number" id="loss-sanity" name="loss-sanity" form="planner" data-i18n-aria-label="allowedSanityLoss" aria-label="Allowed sanity loss" min="0" step="0.5" value="0">
+                </label>
+                <label class="loss loss-health">
+                  <span data-i18n="statHealth">Health</span>
+                  <input type="number" id="loss-health" name="loss-health" form="planner" data-i18n-aria-label="allowedHealthLoss" aria-label="Allowed health loss" min="0" step="0.5" value="0">
+                </label>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria-label="language">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ru">RU</button>
+        </div>
       </div>
     </div>
   </header>
@@ -81,87 +201,13 @@
           </span>
           <button type="button" id="sample" class="link-button" data-i18n="loadExample">Load example</button>
         </div>
-      </section>
 
-      <aside class="card config-card">
-        <div class="card-head">
-          <span class="step-badge">2</span>
-          <h2 data-i18n="configTitle">Config</h2>
-        </div>
-
-        <fieldset class="field">
-          <legend data-i18n="maximize">Maximize</legend>
-          <div class="segmented" role="group" data-i18n-aria-label="statToMaximize" aria-label="Stat to maximize">
-            <button type="button" data-stat="Hunger" class="active" data-i18n="statHunger">Hunger</button>
-            <button type="button" data-stat="Sanity" data-i18n="statSanity">Sanity</button>
-            <button type="button" data-stat="Health" data-i18n="statHealth">Health</button>
-          </div>
-        </fieldset>
-
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="warlyTitle">Warly recipes</span>
-            <span class="switch-sub" data-i18n="warlySub">Portable Crock Pot exclusives</span>
-          </span>
-          <input type="checkbox" id="warly" name="warly">
-          <span class="switch" aria-hidden="true"></span>
-        </label>
-
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="ignoreDriedTitle">Ignore Dried variants</span>
-            <span class="switch-sub" data-i18n="ignoreDriedSub">Default: on &middot; skip Jerky and dried kelp</span>
-          </span>
-          <input type="checkbox" id="ignore-dried" name="ignore-dried" checked>
-          <span class="switch" aria-hidden="true"></span>
-        </label>
-
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="ignoreMilkmadeTitle">Ignore Milkmade Hat</span>
-            <span class="switch-sub" data-i18n="ignoreMilkmadeSub">Default: on &middot; it is worn, not eaten</span>
-          </span>
-          <input type="checkbox" id="ignore-milkmade" name="ignore-milkmade" checked>
-          <span class="switch" aria-hidden="true"></span>
-        </label>
-
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="ignoreOverTimeTitle">Ignore over time stats</span>
-            <span class="switch-sub" data-i18n="ignoreOverTimeSub">Default: on &middot; only instant stat gains</span>
-          </span>
-          <input type="checkbox" id="ignore-over-time" name="ignore-over-time" checked>
-          <span class="switch" aria-hidden="true"></span>
-        </label>
-
-        <fieldset class="field">
-          <legend data-i18n="lossesTitle">Permissible losses</legend>
-          <p class="field-help">
-            <span data-i18n="lossesHelpA">How much of each stat the whole plan may lose.</span>
-            <strong>0</strong><span data-i18n="lossesHelpB"> means never finish below zero.</span>
-          </p>
-          <div class="loss-grid">
-            <label class="loss loss-hunger">
-              <span data-i18n="statHunger">Hunger</span>
-              <input type="number" id="loss-hunger" name="loss-hunger" data-i18n-aria-label="allowedHungerLoss" aria-label="Allowed hunger loss" min="0" step="0.5" value="0">
-            </label>
-            <label class="loss loss-sanity">
-              <span data-i18n="statSanity">Sanity</span>
-              <input type="number" id="loss-sanity" name="loss-sanity" data-i18n-aria-label="allowedSanityLoss" aria-label="Allowed sanity loss" min="0" step="0.5" value="0">
-            </label>
-            <label class="loss loss-health">
-              <span data-i18n="statHealth">Health</span>
-              <input type="number" id="loss-health" name="loss-health" data-i18n-aria-label="allowedHealthLoss" aria-label="Allowed health loss" min="0" step="0.5" value="0">
-            </label>
-          </div>
-        </fieldset>
-
-        <button type="submit" id="calculate" class="primary">
+        <button type="submit" id="calculate" class="primary plan-submit">
           <span class="button-label">Calculate plan</span>
           <span class="button-spinner" aria-hidden="true"></span>
         </button>
         <p id="error" class="error" role="alert" hidden></p>
-      </aside>
+      </section>
     </form>
 
     <section id="results" class="results" hidden aria-live="polite">
@@ -238,6 +284,9 @@
       <p class="footer-small" data-i18n="footerSmall">DSTMeta is a working name.</p>
     </div>
   </footer>
+
+  <div id="character-menu" class="character-menu" role="listbox"
+    aria-label="Choose character" data-i18n-aria-label="characterMenu" hidden></div>
 
   <script src="i18n.js"></script>
   <script src="app.js"></script>

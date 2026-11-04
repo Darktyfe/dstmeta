@@ -18,10 +18,15 @@ On Windows you can also double-click `start.bat`, which runs the server with
 `--open` and stops on an error instead of closing the window.
 
 Then open <http://127.0.0.1:8000>. Use `--port 8080` to change the port and
-`--open` to launch the browser automatically. The page has the same options as
-the CLI: choose `Hunger`, `Sanity` or `Health`, enable Warly's exclusive
-recipes, turn drying-rack variants on or off, ignore the Milkmade Hat, ignore
-stats that are restored over time, and set permissible losses. The
+`--open` to launch the browser automatically. The gear button to the left of the
+language switch opens the planning options. The character picker at the top of
+that panel applies the chosen survivor's eating rules (see
+[Characters](#characters)). In Uncompromising Mode it also lists the mod's
+Winky, Wathom and Wixie. The page has the same options as the CLI: choose
+`Hunger`, `Sanity`
+or `Health`, enable Warly's exclusive recipes, turn drying-rack variants on or
+off, ignore the Milkmade Hat, ignore stats that are restored over time, and set
+permissible losses. The
 **Uncompromising Mode** toggle in the header switches to the mod's data (see
 below); it is off by default. The web planner accepts up to 100 ingredients
 made of at most 24 different kinds per calculation; raise those limits with
@@ -88,6 +93,40 @@ without `ё`) and maps them back to English before planning:
 Passing `"lang": "ru"` also localizes validation errors returned by
 `/api/calculate`. Omitting `lang` keeps the English API behaviour.
 
+### Characters
+
+The character picker in the gear menu applies the selected survivor's eating
+rules to the plan, the best dish and the dish list.  Character ids are sent to
+`/api/calculate` as `"character"` (for example `"wilson"` or `"warly"`); the
+rules live in `food_calc/code/characters.py`.
+
+* Favourite foods give **+15 Hunger** in normal DST.  In Uncompromising Mode
+  they give **+5 to +15 Sanity** instead.  UC always counts gradual stats, so
+  that Sanity is included there.  Winky's Powdercake is the exception: it gives
+  +15 to all three stats immediately and extra Sanity over time.
+* Wigfrid and Wathom eat only Meat and Goodies; Wurt is vegetarian; Warly eats
+  only Crock Pot dishes.
+* Webber ignores the negative Health/Sanity of monster foods such as Monster
+  Meat and Monster Lasagna (Durians still hurt him).  Winky ignores the
+  negative parts of monster foods and raw meat.  Wathom ignores the Sanity loss
+  from non-monster raw meat.  Wurt's durian favourites lose their Health and
+  Sanity penalties.
+* Wormwood gets no Health from food, Wanda can lose but not gain Health, and
+  Wortox halves all food stats after favourite bonuses.
+* Wes (75), Wigfrid (120) and Walter (110) have their final Hunger capped at
+  their maximum.
+* Warly gets a repeat-limit dropdown next to the character picker.  `0` means
+  no repeated dish, `1` allows one repeat (two servings), and so on.  `Ignore`
+  turns the food-memory penalty off.  The DST multipliers are `100%, 90%, 80%,
+  65%, 50%, 30%`; UC adds a `+20%` first serving and then uses `80%, 70%, 55%,
+  40%, 30%`.
+
+Foods are classified as `meat`, `goodies`, `monster` and `raw` in
+`food_calc/data/food_types.txt`; `food_calc/data/uc/food_types.txt` applies the
+Uncompromising Mode type changes.  The site always sends a character, while API
+callers may omit it to keep the old character-neutral behaviour.  The API also
+accepts `"warlyRepeats": -1` (ignore) or `0` to `5`.
+
 ## Usage
 
 Requires Python 3.8+ (no third-party packages).
@@ -96,6 +135,7 @@ Requires Python 3.8+ (no third-party packages).
 py food_calc\code\main.py Meat Berries Berries Berries
 py food_calc\code\main.py --stat Sanity Ice Butter Honey Berries
 py food_calc\code\main.py --warly Asparagus Asparagus Ice Ice
+py food_calc\code\main.py --character warly --warly-repeats 0 Meat Meat Meat Meat Berries Berries Berries Berries
 py food_calc\code\main.py --dried --stat Sanity Meat Meat Meat Meat
 py food_calc\code\main.py --mode uc Boomberry Boomberry Egg Egg
 py food_calc\code\main.py --check
@@ -111,19 +151,23 @@ py food_calc\code\main.py
 
 `--stat` chooses the stat to optimize (`Hunger`, `Sanity` or `Health`, default
 `Hunger`). `--mode` chooses the data set: `dst` (default, ordinary Don't Starve
-Together) or `uc` (Uncompromising Mode, see below). `--warly` adds Warly's
-Portable Crock Pot exclusive recipes, which normal characters cannot cook.
+Together) or `uc` (Uncompromising Mode, see below). `--character` applies one
+survivor's diet, favourite food and other eating rules; `--warly-repeats` sets
+Warly's repeat limit (`-1` ignores the penalty, `0` allows no repeated dish,
+and so on). `--warly` adds Warly's Portable Crock Pot exclusive recipes, which
+normal characters cannot cook.
 `--dried` adds drying-rack variants such as
 `Meat` -> `Jerky` and `Kelp Fronds` -> `Dried Kelp Fronds`; it is off by
 default because a rack is much slower than a campfire. On the site the same
 option is the **Ignore Dried variants** switch, which starts enabled.
 `--over-time` counts the part of a food's stats that is restored gradually
 (for example 30 of Soothing Tea's 45 sanity or 120 of Jellybeans' 122 health);
-by default only the stats given on the first bite are counted. `--milkmade`
-allows the Milkmade Hat, which is worn as a hat instead of eaten; by default it
-is ignored. On the site these are the **Ignore over time stats** and **Ignore
-Milkmade Hat** switches, both starting enabled. `--check` validates the data
-files and lists gaps.
+by default only the stats given on the first bite are counted. Uncompromising
+Mode always counts gradual stats, so `--over-time` is implied and the site
+hides that switch there. `--milkmade` allows the Milkmade Hat, which is worn as
+a hat instead of eaten; by default it is ignored. On the site these are the
+**Ignore over time stats** and **Ignore Milkmade Hat** switches, both starting
+enabled. `--check` validates the data files and lists gaps.
 
 `--loss-hunger`, `--loss-sanity` and `--loss-health` set the permissible net
 loss for each stat (default `0`). A plan is only considered if its final totals
@@ -316,6 +360,7 @@ git. On Unix-like systems any `g++` works; the loader picks up
 ```bat
 py food_calc\code\test_alg.py
 py food_calc\code\test_uc.py
+py food_calc\code\test_characters.py
 py site\test_site.py
 ```
 
@@ -326,11 +371,13 @@ food_calc/
   code/
     basic_func.py   parsing of the data files
     alg.py          tag matching, recipe selection, search
+    characters.py   diets, favourite foods and Warly's repeat penalty
     uc_rules.py     Uncompromising Mode recipes and filler limits
     cpp_engine.py   ctypes loader for the native engine
     main.py         command line interface
     test_alg.py     unit tests for the engine
     test_uc.py      unit tests for Uncompromising Mode
+    test_characters.py  unit tests for the character rules
   native/
     engine.cpp      C++ port of the plan search
     engine.dll      compiled library (Windows); libengine.so / libengine.dylib
@@ -342,6 +389,7 @@ food_calc/
     dried_table.txt   drying rack raw -> dried conversions
     conversions.txt   live creature -> food drop when killed
     over_time.txt     gradual part of a food's stats
+    food_types.txt    meat/goodies/monster/raw food types
     warly_recipes.txt Warly's Portable Crock Pot recipes
     picker_order.txt  ingredient order used by the website picker
     uc/               Uncompromising Mode overlays for the files above
@@ -352,12 +400,14 @@ site/
   i18n.js           English and Russian interface strings
   names_ru.json     English-to-Russian food names
   icons/            64x64 ingredient icons for the picker
+  portraits/        90x90 character portraits for the character picker
   server.py         local web server and JSON API
   test_site.py      tests for the website API
 tools/
   build_engine.py   compile food_calc/native/engine.cpp
   fetch_compiler.py download a portable MinGW-w64 g++ (Windows)
   fetch_food_icons.py download the picker icons from the Don't Starve wiki
+  fetch_portraits.py download the character portraits from the Don't Starve wiki
 ```
 
 ## Data format
