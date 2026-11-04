@@ -1,0 +1,110 @@
+# Food types used by character diets.
+# Format: Name: type, type
+# Types: meat, goodies, monster, raw
+
+Bacon and Eggs: meat
+Barnacle Linguine: meat
+Barnacle Nigiri: meat
+Barnacle Pita: meat
+Barnacles: meat
+Batilisk Wing: meat, raw
+Beefy Greens: meat
+Bitty Baitfish: meat
+Black Catfish: meat
+Bloomfin Tuna: meat
+Bone Bouillon: meat
+Breakfast Skillet: meat
+Bunny Stew: meat
+California Roll: meat
+Ceviche: meat
+Charred Nostrils: meat
+Cooked Barnacles: meat
+Cooked Batilisk Wing: meat
+Cooked Eel: meat
+Cooked Egg: meat
+Cooked Fish Morsel: meat
+Cooked Frog Legs: meat
+Cooked Leafy Meat: meat
+Cooked Meat: meat
+Cooked Monster Meat: meat, monster
+Cooked Morsel: meat
+Dandy Lionfish: meat
+Dappled Koi: meat
+Deep Bass: meat
+Drumstick: meat, raw
+Durian: monster
+Eel: meat, raw
+Egg: meat, raw
+Extra Smelly Durian: monster
+Fallounder: meat
+Fig-Stuffed Trunk: meat
+Figgy Frogwich: meat
+Figkabab: meat
+Fish Cordon Bleu: meat
+Fish Morsel: meat, raw
+Fish Tacos: meat
+Fishsticks: meat
+Fishy Jerky: meat
+Freshwater Fish: meat
+Fried Drumstick: meat
+Fried Tallbird Egg: meat
+Frog Legs: meat, raw
+Froggle Bunwich: meat
+Frozen Banana Daiquiri: goodies
+Golden Koi: meat
+Guacamole: meat
+Guardian's Horn: meat
+Hatching Tallbird Egg: meat
+Heat Gland: meat
+Honey Ham: meat
+Honey Nuggets: meat
+Ice Bream: meat
+Ice Cream: goodies
+Jelly Salad: meat
+Jellybeans: goodies
+Jerky: meat
+Kabobs: meat
+Koalefant Trunk: meat
+Koalefant Trunk Steak: meat
+Leafy Meat: meat, raw
+Leafy Meatloaf: meat
+Meat: meat, raw
+Meatballs: meat
+Meaty Stew: meat
+Monster Jerky: meat, monster
+Monster Lasagna: meat, monster
+Monster Meat: meat, monster, raw
+Monster Tartare: meat, monster
+Moqueca: meat
+Morsel: meat, raw
+Mudfish: meat
+Mushy Cake: goodies
+Naked Nostrils: meat, raw
+Needlenosed Squirt: meat
+Pierogi: meat
+Plain Omelette: meat
+Raw Fish: meat, raw
+Runty Guppy: meat
+Scorching Sunfish: meat
+Seafood Gumbo: meat
+Small Fishy Jerky: meat
+Small Jerky: meat
+Smolt Fry: meat
+Spicy Chili: meat
+Spittlefish: meat
+Stuffed Fish Heads: meat
+Stuffed Night Cap: meat
+Stuffed Pepper Poppers: meat
+Surf 'n' Turf: meat
+Sweetish Fish: meat
+Taffy: goodies
+Tall Scotch Eggs: meat
+Tallbird Egg: meat, raw
+Turkey Dinner: meat
+Unagi: meat
+Veggie Burger: meat
+Volt Goat Chaud-Froid: goodies
+Winter Koalefant Trunk: meat
+Wobster: meat, raw
+Wobster Bisque: meat
+Wobster Dinner: meat

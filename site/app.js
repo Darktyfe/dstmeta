@@ -18,12 +18,22 @@
     maxTypes: $("#max-types"),
     sample: $("#sample"),
     langButtons: $$(".lang-switch button"),
+    settingsToggle: $("#settings-toggle"),
+    settingsPanel: $("#settings-panel"),
+    settingsClose: $("#settings-close"),
+    characterToggle: $("#character-toggle"),
+    characterPortrait: $("#character-portrait"),
+    characterName: $("#character-name"),
+    characterMenu: $("#character-menu"),
+    warlyRepeatsWrap: $("#warly-repeats-wrap"),
+    warlyRepeats: $("#warly-repeats"),
     modeToggle: $("#uncompromising-toggle"),
     statButtons: $$(".segmented button"),
     warly: $("#warly"),
     ignoreDried: $("#ignore-dried"),
     ignoreMilkmade: $("#ignore-milkmade"),
     ignoreOverTime: $("#ignore-over-time"),
+    ignoreOverTimeRow: $("#ignore-over-time-row"),
     lossHunger: $("#loss-hunger"),
     lossSanity: $("#loss-sanity"),
     lossHealth: $("#loss-health"),
@@ -52,6 +62,8 @@
   const state = {
     lang: "en",
     mode: "dst",
+    character: "wilson",
+    warlyRepeats: 1,
     stat: "Hunger",
     loading: false,
     data: null,
@@ -79,6 +91,31 @@
     prep: "verbPrep",
     kill: "verbKill",
   };
+
+  const CHARACTERS = [
+    { id: "wilson", key: "charWilson" },
+    { id: "willow", key: "charWillow" },
+    { id: "wolfgang", key: "charWolfgang" },
+    { id: "wendy", key: "charWendy" },
+    { id: "wx-78", key: "charWX78" },
+    { id: "wickerbottom", key: "charWickerbottom" },
+    { id: "woodie", key: "charWoodie" },
+    { id: "wes", key: "charWes" },
+    { id: "maxwell", key: "charMaxwell" },
+    { id: "wigfrid", key: "charWigfrid" },
+    { id: "webber", key: "charWebber" },
+    { id: "winona", key: "charWinona" },
+    { id: "warly", key: "charWarly" },
+    { id: "walter", key: "charWalter" },
+    { id: "wortox", key: "charWortox" },
+    { id: "wormwood", key: "charWormwood" },
+    { id: "wurt", key: "charWurt" },
+    { id: "wanda", key: "charWanda" },
+    { id: "wonkey", key: "charWonkey" },
+    { id: "winky", key: "charWinky", mode: "uc" },
+    { id: "wathom", key: "charWathom", mode: "uc" },
+    { id: "wixie", key: "charWixie", mode: "uc" },
+  ];
 
   const SAMPLE = ["Meat", "Meat", "Meat", "Ice", "Meat"];
 
@@ -185,6 +222,11 @@
         "aria-pressed",
         uncompromising ? "true" : "false",
       );
+    }
+    // Uncompromising Mode always counts gradual Health/Sanity restoration,
+    // so the switch is not offered there.
+    if (els.ignoreOverTimeRow) {
+      els.ignoreOverTimeRow.hidden = uncompromising;
     }
   }
 
@@ -415,6 +457,11 @@
     $$("[data-i18n-aria-label]").forEach((node) => {
       node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
     });
+    $$("[data-i18n-title]").forEach((node) => {
+      node.title = t(node.dataset.i18nTitle);
+    });
+
+    refreshCharacterLabels();
 
     els.langButtons.forEach((button) => {
       const active = button.dataset.lang === state.lang;
@@ -501,6 +548,11 @@
     $$("[data-i18n-aria-label]").forEach((node) => {
       node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
     });
+    $$("[data-i18n-title]").forEach((node) => {
+      node.title = t(node.dataset.i18nTitle);
+    });
+
+    refreshCharacterLabels();
 
     els.langButtons.forEach((button) => {
       const active = button.dataset.lang === state.lang;
@@ -548,6 +600,304 @@
     };
   }
 
+  function settingsOpen() {
+    return Boolean(els.settingsPanel) && !els.settingsPanel.hidden;
+  }
+
+  function openSettings() {
+    if (!els.settingsPanel || settingsOpen()) return;
+    els.settingsPanel.hidden = false;
+    els.settingsToggle.setAttribute("aria-expanded", "true");
+    els.settingsPanel.focus();
+  }
+
+  function closeSettings(restoreFocus = true) {
+    if (!settingsOpen()) return;
+    closeCharacterMenu(false);
+    els.settingsPanel.hidden = true;
+    els.settingsToggle.setAttribute("aria-expanded", "false");
+    if (restoreFocus) els.settingsToggle.focus();
+  }
+
+  function toggleSettings() {
+    if (settingsOpen()) closeSettings();
+    else openSettings();
+  }
+
+  function characterLabel(character) {
+    return t(character.key);
+  }
+
+  function characterById(id) {
+    return CHARACTERS.find((character) => character.id === id) || null;
+  }
+
+  function availableCharacters() {
+    return CHARACTERS.filter(
+      (character) => !character.mode || character.mode === state.mode
+    );
+  }
+
+  function activeCharacter() {
+    return (
+      availableCharacters().find(
+        (character) => character.id === state.character
+      ) || availableCharacters()[0]
+    );
+  }
+
+  function storedCharacter() {
+    try {
+      const saved = localStorage.getItem("dstmeta.character");
+      return availableCharacters().some(
+        (character) => character.id === saved
+      )
+        ? saved
+        : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function storedWarlyRepeats() {
+    try {
+      const raw = localStorage.getItem("dstmeta.warlyRepeats");
+      if (raw === null || raw === "") return null;
+      const saved = Number(raw);
+      return Number.isInteger(saved) && saved >= -1 && saved <= 5
+        ? saved
+        : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function applyWarlyRepeats(value) {
+    const number = Number(value);
+    state.warlyRepeats =
+      Number.isInteger(number) && number >= -1 && number <= 5 ? number : 1;
+    if (els.warlyRepeats) {
+      els.warlyRepeats.value = String(state.warlyRepeats);
+    }
+    try {
+      localStorage.setItem(
+        "dstmeta.warlyRepeats", String(state.warlyRepeats)
+      );
+    } catch (error) {
+      // Storage may be unavailable; the setting still works for this page.
+    }
+    refreshWarlyRepeats();
+  }
+
+  function refreshWarlyRepeats() {
+    if (!els.warlyRepeatsWrap) return;
+    els.warlyRepeatsWrap.hidden = state.character !== "warly";
+  }
+
+  function buildCharacterMenu() {
+    if (!els.characterMenu) return;
+    clear(els.characterMenu);
+    let modGroup = false;
+    availableCharacters().forEach((character) => {
+      if (character.mode === "uc" && !modGroup) {
+        modGroup = true;
+        const label = el("div", "character-group-label", t("uncompromising"));
+        label.setAttribute("role", "presentation");
+        els.characterMenu.append(label);
+      }
+
+      const option = el("button", "character-option");
+      option.type = "button";
+      option.dataset.character = character.id;
+      option.setAttribute("role", "option");
+      option.tabIndex = -1;
+
+      const image = document.createElement("img");
+      image.className = "character-option-portrait";
+      image.src = `portraits/${character.id}.png`;
+      image.alt = "";
+      image.width = 26;
+      image.height = 26;
+      image.loading = "lazy";
+      image.decoding = "async";
+
+      option.append(
+        image,
+        el("span", "character-option-name", characterLabel(character))
+      );
+      option.addEventListener("click", () => selectCharacter(character.id));
+      els.characterMenu.append(option);
+    });
+    markCharacterOptions();
+  }
+
+  function markCharacterOptions() {
+    if (!els.characterMenu) return;
+    $$(".character-option", els.characterMenu).forEach((option) => {
+      const selected = option.dataset.character === state.character;
+      option.setAttribute("aria-selected", selected ? "true" : "false");
+      option.tabIndex = selected ? 0 : -1;
+    });
+  }
+
+  function refreshCharacterLabels() {
+    if (!els.characterToggle) return;
+    const character = activeCharacter();
+    els.characterName.textContent = characterLabel(character);
+    els.characterToggle.title = characterLabel(character);
+    if (!els.characterMenu) return;
+    $$(".character-option", els.characterMenu).forEach((option) => {
+      const found = CHARACTERS.find(
+        (item) => item.id === option.dataset.character
+      );
+      const name = option.querySelector(".character-option-name");
+      if (found && name) name.textContent = characterLabel(found);
+    });
+    const group = els.characterMenu.querySelector(".character-group-label");
+    if (group) group.textContent = t("uncompromising");
+  }
+
+  function applyCharacter(id) {
+    const character =
+      CHARACTERS.find((item) => item.id === id) || CHARACTERS[0];
+    state.character = character.id;
+    try {
+      localStorage.setItem("dstmeta.character", character.id);
+    } catch (error) {
+      // Storage may be unavailable; the selection still works for this page.
+    }
+    if (els.characterPortrait) {
+      els.characterPortrait.src = `portraits/${character.id}.png`;
+    }
+    refreshCharacterLabels();
+    markCharacterOptions();
+    refreshWarlyRepeats();
+  }
+
+  function refreshCharacterMode() {
+    const available = availableCharacters();
+    if (!available.some((character) => character.id === state.character)) {
+      applyCharacter(available[0].id);
+    }
+    closeCharacterMenu(false);
+    buildCharacterMenu();
+  }
+
+  function characterMenuOpen() {
+    return Boolean(els.characterMenu) && !els.characterMenu.hidden;
+  }
+
+  function positionCharacterMenu() {
+    if (!characterMenuOpen()) return;
+    const rect = els.characterToggle.getBoundingClientRect();
+    const margin = 12;
+    const width = Math.min(300, window.innerWidth - margin * 2);
+    els.characterMenu.style.width = `${width}px`;
+
+    let left = rect.right - width;
+    left = Math.max(margin, Math.min(left, window.innerWidth - margin - width));
+
+    let top = rect.bottom + 8;
+    let maxHeight = Math.min(500, window.innerHeight - top - margin);
+    const spaceAbove = rect.top - margin - 8;
+    if (maxHeight < 220 && spaceAbove > maxHeight) {
+      maxHeight = Math.min(500, spaceAbove);
+      top = rect.top - 8 - maxHeight;
+    }
+
+    els.characterMenu.style.left = `${Math.round(left)}px`;
+    els.characterMenu.style.top = `${Math.round(top)}px`;
+    els.characterMenu.style.maxHeight =
+      `${Math.max(120, Math.round(maxHeight))}px`;
+  }
+
+  function openCharacterMenu(focusLast = false) {
+    if (!els.characterMenu) return;
+    if (!els.characterMenu.children.length) buildCharacterMenu();
+    markCharacterOptions();
+    els.characterMenu.hidden = false;
+    els.characterToggle.setAttribute("aria-expanded", "true");
+    positionCharacterMenu();
+    const options = $$(".character-option", els.characterMenu);
+    const selected = options.find(
+      (option) => option.dataset.character === state.character
+    );
+    const target = focusLast
+      ? options[options.length - 1]
+      : selected || options[0];
+    if (target) target.focus();
+  }
+
+  function closeCharacterMenu(restoreFocus = true) {
+    if (!characterMenuOpen()) return;
+    els.characterMenu.hidden = true;
+    els.characterToggle.setAttribute("aria-expanded", "false");
+    if (restoreFocus) els.characterToggle.focus();
+  }
+
+  function toggleCharacterMenu() {
+    if (characterMenuOpen()) closeCharacterMenu();
+    else openCharacterMenu();
+  }
+
+  function selectCharacter(id) {
+    applyCharacter(id);
+    closeCharacterMenu();
+  }
+
+  function focusCharacterOption(step) {
+    const options = $$(".character-option", els.characterMenu);
+    if (!options.length) return;
+    const current = options.indexOf(document.activeElement);
+    const next =
+      current === -1
+        ? step > 0
+          ? 0
+          : options.length - 1
+        : (current + step + options.length) % options.length;
+    options[next].focus();
+  }
+
+  function onCharacterMenuKey(event) {
+    const options = $$(".character-option", els.characterMenu);
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        focusCharacterOption(1);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        focusCharacterOption(-1);
+        break;
+      case "Home":
+        event.preventDefault();
+        if (options.length) options[0].focus();
+        break;
+      case "End":
+        event.preventDefault();
+        if (options.length) options[options.length - 1].focus();
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        if (document.activeElement.classList.contains("character-option")) {
+          selectCharacter(document.activeElement.dataset.character);
+        }
+        break;
+      case "Escape":
+        event.preventDefault();
+        event.stopPropagation();
+        closeCharacterMenu();
+        break;
+      case "Tab":
+        event.preventDefault();
+        closeCharacterMenu();
+        break;
+      default:
+        break;
+    }
+  }
+
   function showError(message, key) {
     state.errorKey = key || null;
     els.error.textContent = message;
@@ -591,10 +941,14 @@
           stat: state.stat,
           lang: state.lang,
           mode: state.mode,
+          character: state.character,
+          warlyRepeats: state.warlyRepeats,
           warly: els.warly.checked,
           ignoreDried: els.ignoreDried.checked,
           ignoreMilkmade: els.ignoreMilkmade.checked,
-          ignoreOverTime: els.ignoreOverTime.checked,
+          // Gradual stats are always counted in Uncompromising Mode.
+          ignoreOverTime:
+            state.mode === "uc" ? false : els.ignoreOverTime.checked,
           losses: lossesPayload(),
         }),
       });
@@ -613,6 +967,7 @@
       }
 
       render(data);
+      closeSettings(false);
       els.results.hidden = false;
       if (wasHidden) {
         els.results.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -776,6 +1131,17 @@
     if (data.overTime) meta.push(t("metaOverTime"));
     if (data.mode === "uc") meta.push(t("metaUncompromising"));
     if (!data.exact) meta.push(t("metaBeam"));
+    if (data.character) {
+      const character = characterById(data.character);
+      if (character) meta.push(characterLabel(character));
+      if (
+        data.character === "warly" &&
+        Number.isInteger(data.warlyRepeats) &&
+        data.warlyRepeats >= 0
+      ) {
+        meta.push(t("metaWarlyRepeats", { n: data.warlyRepeats }));
+      }
+    }
     meta.push(t("metaEngine", { engine: data.engine === "C++" ? "C++" : "Python" }));
     els.planMeta.textContent = meta.join(" · ");
 
@@ -829,8 +1195,67 @@
     button.addEventListener("click", () => switchLanguage(button.dataset.lang));
   });
 
+  if (els.settingsToggle && els.settingsPanel) {
+    els.settingsToggle.addEventListener("click", toggleSettings);
+    els.settingsClose.addEventListener("click", () => closeSettings());
+    els.settingsPanel.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        closeSettings();
+      }
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (!settingsOpen()) return;
+      if (els.settingsPanel.contains(event.target)) return;
+      if (els.settingsToggle.contains(event.target)) return;
+      if (els.characterMenu && els.characterMenu.contains(event.target)) return;
+      closeSettings(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !settingsOpen()) return;
+      if (els.settingsPanel.contains(document.activeElement)) return;
+      closeSettings(false);
+    });
+  }
+
+  if (els.warlyRepeats) {
+    els.warlyRepeats.addEventListener("change", () => {
+      applyWarlyRepeats(els.warlyRepeats.value);
+      clearError();
+    });
+  }
+
+  if (els.characterToggle && els.characterMenu) {
+    els.characterToggle.addEventListener("click", toggleCharacterMenu);
+    els.characterToggle.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        openCharacterMenu(event.key === "ArrowUp");
+      }
+    });
+    els.characterMenu.addEventListener("keydown", onCharacterMenuKey);
+    document.addEventListener("pointerdown", (event) => {
+      if (!characterMenuOpen()) return;
+      if (els.characterMenu.contains(event.target)) return;
+      if (els.characterToggle.contains(event.target)) return;
+      closeCharacterMenu(false);
+    });
+    window.addEventListener("resize", () => {
+      if (characterMenuOpen()) positionCharacterMenu();
+    });
+    window.addEventListener("scroll", () => closeCharacterMenu(false), {
+      passive: true,
+    });
+    if (els.settingsPanel) {
+      els.settingsPanel.addEventListener("scroll", () => closeCharacterMenu(false), {
+        passive: true,
+      });
+    }
+  }
+
   els.modeToggle.addEventListener("click", () => {
     applyMode(state.mode === "uc" ? "dst" : "uc");
+    refreshCharacterMode();
     clearError();
     state.data = null;
     els.results.hidden = true;
@@ -862,6 +1287,9 @@
   async function init() {
     const lang = detectLang();
     applyMode(storedMode() || "dst");
+    buildCharacterMenu();
+    applyCharacter(storedCharacter() || "wilson");
+    applyWarlyRepeats(storedWarlyRepeats() ?? 1);
     // Russian names are also used by the picker's search box, so load them
     // even when the interface starts in English.
     await loadRuNames();

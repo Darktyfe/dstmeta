@@ -15,6 +15,7 @@ import argparse
 import sys
 
 import alg
+import characters
 
 
 def get_user_food():
@@ -48,11 +49,12 @@ def resolve_names(names, mode=alg.DEFAULT_MODE):
     return resolved, unknown
 
 
-def format_stats(dish, over_time=True, mode=alg.DEFAULT_MODE):
-    stats = alg.get_food_stats(dish, over_time, mode)
+def format_stats(dish, over_time=True, mode=alg.DEFAULT_MODE,
+                 character=None, multiplier=1.0):
+    stats = alg.get_food_stats(dish, over_time, mode, character)
     if stats is None:
         return "stats unknown"
-    hunger, sanity, health = stats
+    hunger, sanity, health = (value * multiplier for value in stats)
     return f"hunger {hunger:g}, sanity {sanity:g}, health {health:g}"
 
 
@@ -96,6 +98,22 @@ def main(argv=None):
         choices=alg.MODES,
         default=alg.DEFAULT_MODE,
         help="game data to use (default: dst; uc adds Uncompromising Mode)",
+    )
+    parser.add_argument(
+        "--character",
+        choices=characters.CHARACTER_IDS,
+        help="apply one survivor's diet, favourites and eating rules",
+    )
+    parser.add_argument(
+        "--warly-repeats",
+        type=int,
+        choices=range(-1, 6),
+        default=1,
+        metavar="N",
+        help=(
+            "Warly repeat limit: -1 ignores the penalty, 0 allows no repeated "
+            "dish, 1 allows one repeat, up to 5 (default: 1)"
+        ),
     )
     parser.add_argument(
         "--warly",
@@ -144,6 +162,9 @@ def main(argv=None):
         help="validate the data files and exit",
     )
     args = parser.parse_args(argv)
+    # Uncompromising Mode always counts gradual stats.
+    if args.mode == "uc":
+        args.over_time = True
 
     if args.check:
         return run_check(args.mode)
@@ -162,8 +183,16 @@ def main(argv=None):
         )
         return 1
 
+    def dish_multiplier():
+        return (
+            characters.warly_first_multiplier(args.mode)
+            if args.character == "warly"
+            else 1.0
+        )
+
     dishes = alg.cookable_dishes(
-        ingredients, args.warly, args.dried, args.milkmade, args.mode
+        ingredients, args.warly, args.dried, args.milkmade, args.mode,
+        args.character,
     )
     if not dishes:
         print("Nothing can be cooked from these ingredients.")
@@ -171,24 +200,29 @@ def main(argv=None):
         ranking = sorted(
             dishes,
             key=lambda dish: (
-                -alg.get_food_stat(dish, args.stat, args.over_time, args.mode),
+                -alg.get_food_stat(
+                    dish, args.stat, args.over_time, args.mode,
+                    args.character,
+                ),
                 dish,
             ),
         )
         print(f"Cookable dishes ({len(ranking)}):")
         for dish in ranking:
+            multiplier = dish_multiplier()
             score = alg.get_food_stat(
-                dish, args.stat, args.over_time, args.mode
-            )
+                dish, args.stat, args.over_time, args.mode, args.character
+            ) * multiplier
             print(
-                f"  {dish}: {format_stats(dish, args.over_time, args.mode)}"
+                f"  {dish}: "
+                f"{format_stats(dish, args.over_time, args.mode, args.character, multiplier)}"
                 f"  [{args.stat.lower()} {score:g},"
                 f" {len(dishes[dish])} combination(s)]"
             )
 
     best = alg.best_single_dish(
         ingredients, args.stat, args.warly, args.dried,
-        args.over_time, args.milkmade, args.mode,
+        args.over_time, args.milkmade, args.mode, args.character,
     )
     if best is not None:
         score, dish, combo = best
@@ -211,8 +245,13 @@ def main(argv=None):
         over_time=args.over_time,
         milkmade=args.milkmade,
         mode=args.mode,
+        character=args.character,
+        warly_repeats=args.warly_repeats if args.character == "warly" else None,
     )
-    totals = alg.plan_totals(actions, args.over_time, args.mode)
+    totals = alg.plan_totals(
+        actions, args.over_time, args.mode, args.character,
+        args.warly_repeats if args.character == "warly" else None,
+    )
     print()
     if alg.needs_fast_plan(ingredients):
         print(
@@ -221,15 +260,27 @@ def main(argv=None):
             "exact optimum."
         )
     print(f"Best plan by {args.stat} (total {total:g}):")
+    servings = {}
     for action in actions:
         if action[0] == "keep":
             print(f"  {alg.describe_action(action)} (not eaten)")
         elif action[0] in ("prep", "kill"):
             print(f"  {alg.describe_action(action)}")
         else:
+            multiplier = 1.0
+            if args.character == "warly" and action[0] == "cook":
+                if args.warly_repeats >= 0:
+                    dish = action[2]
+                    serving = servings.get(dish, 0) + 1
+                    servings[dish] = serving
+                    multiplier = characters.warly_multiplier(
+                        serving, args.mode
+                    )
+                else:
+                    multiplier = characters.warly_first_multiplier(args.mode)
             print(
                 f"  {alg.describe_action(action)}: "
-                f"{format_stats(action[2], args.over_time, args.mode)}"
+                f"{format_stats(action[2], args.over_time, args.mode, args.character, multiplier)}"
             )
     print(
         "  totals: "

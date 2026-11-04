@@ -569,6 +569,98 @@ class HttpEndpointTest(unittest.TestCase):
         caught.exception.close()
         self.assertIn("не еда", payload["error"])
 
+    def test_character_favourite_food(self):
+        result = server.calculate(
+            {
+                "ingredients": "Egg\nEgg\nMeat\nMeat",
+                "stat": "Hunger",
+                "character": "wilson",
+            }
+        )
+        self.assertEqual(result["character"], "wilson")
+        self.assertEqual(result["total"], 90.0)
+        self.assertEqual(result["totals"]["Sanity"], 5.0)
+        self.assertEqual(result["totals"]["Health"], 20.0)
+
+    def test_uc_favourite_food_gives_sanity(self):
+        payload = {
+            "ingredients": "Egg\nEgg\nMeat\nMeat",
+            "stat": "Hunger",
+            "mode": "uc",
+            "character": "wilson",
+        }
+        instant = server.calculate(payload)
+        gradual = server.calculate({**payload, "ignoreOverTime": False})
+        # Uncompromising Mode always counts gradual stats, so the UC favourite
+        # Sanity is present even when the payload asks to ignore over-time.
+        self.assertEqual(instant["total"], 75.0)
+        self.assertEqual(instant["totals"]["Sanity"], 20.0)
+        self.assertEqual(gradual["total"], 75.0)
+        self.assertEqual(gradual["totals"]["Sanity"], 20.0)
+
+    def test_warly_repeat_limit(self):
+        base = {
+            "ingredients": "\n".join(["Meat"] * 8),
+            "stat": "Hunger",
+            "character": "warly",
+        }
+        no_repeats = server.calculate({**base, "warlyRepeats": 0})
+        one_repeat = server.calculate({**base, "warlyRepeats": 1})
+        ignored = server.calculate({**base, "warlyRepeats": -1})
+        self.assertEqual(no_repeats["total"], 150.0)
+        self.assertEqual(one_repeat["total"], 285.0)
+        self.assertEqual(ignored["total"], 300.0)
+
+    def test_diets_remove_invalid_food(self):
+        wigfrid = server.calculate(
+            {
+                "ingredients": "Carrot\nCarrot\nCarrot\nCarrot",
+                "stat": "Hunger",
+                "character": "wigfrid",
+            }
+        )
+        wurt = server.calculate(
+            {
+                "ingredients": "Meat\nMeat\nMeat\nMeat",
+                "stat": "Hunger",
+                "character": "wurt",
+            }
+        )
+        self.assertEqual(wigfrid["total"], 0.0)
+        self.assertEqual(wurt["total"], 0.0)
+
+    def test_webber_ignores_monster_penalties(self):
+        result = server.calculate(
+            {
+                "ingredients": "\n".join(["Monster Meat"] * 4),
+                "stat": "Hunger",
+                "character": "webber",
+            }
+        )
+        self.assertEqual(result["totals"]["Health"], 0.0)
+        self.assertEqual(result["totals"]["Sanity"], 0.0)
+
+    def test_character_payload_validation(self):
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {
+                    "ingredients": "Meat",
+                    "stat": "Hunger",
+                    "character": "nobody",
+                }
+            )
+        self.assertIn("unknown character", str(caught.exception))
+        with self.assertRaises(ValueError) as caught:
+            server.calculate(
+                {
+                    "ingredients": "Meat",
+                    "stat": "Hunger",
+                    "character": "warly",
+                    "warlyRepeats": 9,
+                }
+            )
+        self.assertIn("warlyRepeats", str(caught.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
